@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GCC Energy Crisis Tracker</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:#04080f;color:#e0e8f0;font-family:'Inter',system-ui,sans-serif;
+  background-image:linear-gradient(rgba(0,150,255,0.025) 1px,transparent 1px),linear-gradient(90deg,rgba(0,150,255,0.025) 1px,transparent 1px);
+  background-size:36px 36px;}
+::-webkit-scrollbar{width:6px;background:#04080f;}
+::-webkit-scrollbar-thumb{background:#1a2a3a;border-radius:3px;}
+@keyframes scroll{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.15}}
+@keyframes ping{0%{transform:scale(1);opacity:0.8}100%{transform:scale(2.8);opacity:0}}
+@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const {useState,useEffect,useRef}=React;
+
+const countries=[
+  {flag:"🇯🇵",name:"Japan",level:18,sev:"CRITICAL",col:"#ff2222",
+   imports:{qatar:"LNG — 11% of total gas supply",uae:"Crude oil — 25% of imports",ksa:"Crude oil — 30% of imports",kuwait:"Crude oil — 8%",bahrain:"Aluminum, Petrochemicals",egypt:"Suez Canal transit route"},
+   industry:"Semiconductors · Power Grid · Petrochemicals · Steel",loss:"¥22T"},
+  {flag:"🇰🇷",name:"S. Korea",level:22,sev:"CRITICAL",col:"#ff2222",
+   imports:{qatar:"LNG — 18% of total gas supply",uae:"Crude oil — 10%",ksa:"Crude oil — 28%",kuwait:"Crude oil — 9%",bahrain:"Aluminum products",egypt:"Suez Canal transit route"},
+   industry:"Chips · Steel · Shipbuilding · Power",loss:"$48B"},
+  {flag:"🇵🇰",name:"Pakistan",level:12,sev:"CRITICAL",col:"#ff1111",
+   imports:{qatar:"LNG — 55% of total gas",uae:"Refined products · FDI",ksa:"Crude oil · Financial aid",kuwait:"Crude oil — 5%",bahrain:"Minimal",egypt:"Minimal"},
+   industry:"Power Grid · Textiles · Fertilizers · Cement",loss:"$8.4B"},
+  {flag:"🇧🇩",name:"Bangladesh",level:10,sev:"CRITICAL",col:"#ff1111",
+   imports:{qatar:"LNG — 48% of total gas",uae:"Refined fuel",ksa:"Crude oil — 15%",kuwait:"Crude oil — 4%",bahrain:"Minimal",egypt:"Suez Canal transit"},
+   industry:"Garments · Power Plants · Fertilizers · Ceramics",loss:"$6.2B"},
+  {flag:"🇹🇼",name:"Taiwan",level:20,sev:"CRITICAL",col:"#ff2222",
+   imports:{qatar:"LNG — 20% of total gas",uae:"Crude oil — 5%",ksa:"Crude oil — 20%",kuwait:"Crude oil — 6%",bahrain:"Minimal",egypt:"Suez Canal transit"},
+   industry:"TSMC Fabs · Electronics · Power · Petrochems",loss:"$28B"},
+  {flag:"🇮🇳",name:"India",level:28,sev:"HIGH",col:"#ff8800",
+   imports:{qatar:"LNG — 42% of total gas",uae:"Crude oil · Gold · Trade hub",ksa:"Crude oil — 18%",kuwait:"Crude oil — 7%",bahrain:"Aluminum · Finance",egypt:"Suez Canal — 35% of India's seaborne trade"},
+   industry:"Fertilizers · CNG Transport · Power · Chemicals",loss:"₹2.8T"},
+  {flag:"🇨🇳",name:"China",level:38,sev:"HIGH",col:"#ff8800",
+   imports:{qatar:"LNG — 8% of total gas",uae:"Crude oil · Trade",ksa:"Crude oil — 18%",kuwait:"Crude oil — 5%",bahrain:"Minimal",egypt:"Suez Canal — major trade artery"},
+   industry:"Manufacturing · Chemicals · Power · Plastics",loss:"$95B"},
+  {flag:"🇸🇬",name:"Singapore",level:45,sev:"MEDIUM",col:"#ffcc00",
+   imports:{qatar:"LNG — 25% of supply",uae:"Trade hub · Crude",ksa:"Crude oil — 10%",kuwait:"Crude oil — 3%",bahrain:"Finance · Aluminum",egypt:"Suez Canal transit hub"},
+   industry:"Refining · Data Centers · Chemicals · Power",loss:"$12B"},
+  {flag:"🇹🇭",name:"Thailand",level:40,sev:"MEDIUM",col:"#ffcc00",
+   imports:{qatar:"LNG — 15% of supply",uae:"Crude oil — 8%",ksa:"Crude oil — 12%",kuwait:"Crude oil — 5%",bahrain:"Minimal",egypt:"Suez Canal transit"},
+   industry:"Autos · Power Generation · Petrochems · Tourism",loss:"$8.5B"},
+  {flag:"🇫🇷",name:"France",level:50,sev:"MEDIUM",col:"#ffcc00",
+   imports:{qatar:"LNG — 35% of LNG imports",uae:"Crude oil · Finance",ksa:"Crude oil — 8%",kuwait:"Crude oil — 3%",bahrain:"Minimal",egypt:"Suez Canal — 12% of French seaborne trade"},
+   industry:"Industry · Chemicals · Heating · Power",loss:"€22B"},
+  {flag:"🇬🇧",name:"UK",level:62,sev:"LOW",col:"#44cc77",
+   imports:{qatar:"LNG — 30% of LNG imports",uae:"Crude oil · Finance",ksa:"Crude oil — 5%",kuwait:"Minimal",bahrain:"Finance · Banking hub",egypt:"Suez Canal transit"},
+   industry:"Power · Heating · Industry · Chemicals",loss:"£18B"},
+  {flag:"🇪🇺",name:"EU Bloc",level:55,sev:"MEDIUM",col:"#ffcc00",
+   imports:{qatar:"LNG — 14% of EU gas",uae:"Crude oil · Trade",ksa:"Crude oil — 10%",kuwait:"Crude oil — 3%",bahrain:"Aluminum · Finance",egypt:"Suez Canal — 25% of EU seaborne trade"},
+   industry:"Industry · Chemicals · Heating · Manufacturing",loss:"€120B"},
+];
+
+const gcc=[
+  {id:"QA",name:"Qatar",    emoji:"🇶🇦",col:"#ff2222",status:"HALTED",
+   cx:615,cy:268,
+   headline:"LNG shipments FULLY suspended",
+   detail:"QatarEnergy has stopped all LNG tanker dispatches. North Field gas production halted. No restart timeline announced by government.",
+   exports:"77M t/yr LNG · 600k bbl/d oil · World's #1 LNG exporter",
+   keyFacts:["Supplies 25% of global LNG","North Field — world's largest gas field","Main buyers: Japan, Korea, India, EU","$175B sovereign wealth fund activated"]},
+  {id:"AE",name:"UAE",      emoji:"🇦🇪",col:"#ff7700",status:"DISRUPTED",
+   cx:660,cy:285,
+   headline:"ADNOC output severely reduced",
+   detail:"Abu Dhabi National Oil Co. reports 500k bbl/day offline. Jebel Ali — world's largest man-made port — severely congested. Fujairah oil hub disrupted.",
+   exports:"3.4M bbl/d crude · Major LPG exporter · Jebel Ali port hub",
+   keyFacts:["500k bbl/day offline","Jebel Ali port at 30% capacity","Fujairah oil terminal disrupted","Dubai financial markets volatile"]},
+  {id:"SA",name:"Saudi Arabia",emoji:"🇸🇦",col:"#ffaa00",status:"REDUCED",
+   cx:530,cy:295,
+   headline:"Aramco cuts exports 30%",
+   detail:"Ras Tanura terminal on partial shutdown. Saudi Aramco reducing all export volumes. Emergency OPEC+ talks underway in Riyadh.",
+   exports:"10.5M bbl/d capacity · 30% export cut · World's largest oil exporter",
+   keyFacts:["30% export cut declared","Ras Tanura terminal partial shutdown","Yanbu Red Sea port still operating","Emergency OPEC+ session called"]},
+  {id:"KW",name:"Kuwait",   emoji:"🇰🇼",col:"#ff6600",status:"DISRUPTED",
+   cx:598,cy:245,
+   headline:"KPC halts 40% of crude exports",
+   detail:"Kuwait Petroleum Corporation declares partial force majeure. Al-Ahmadi port operating at 30% capacity. Refinery output severely cut.",
+   exports:"2.7M bbl/d capacity · 40% disrupted · Major Asia-Pacific supplier",
+   keyFacts:["40% of exports halted","Al-Ahmadi port at 30% capacity","Mina Abdullah refinery cut","Key supplier to Japan & Korea"]},
+  {id:"BH",name:"Bahrain",  emoji:"🇧🇭",col:"#ff9900",status:"REDUCED",
+   cx:622,cy:260,
+   headline:"BAPCO cuts output · ALBA on reduced power",
+   detail:"Bahrain Petroleum Company reducing throughput 25%. Aluminum Bahrain (ALBA) — world's largest aluminum smelter — on reduced power schedule.",
+   exports:"200k bbl/d crude · World's largest aluminum smelter · Petrochemicals",
+   keyFacts:["BAPCO output cut 25%","ALBA smelter on reduced power","Key aluminum supplier globally","Bahrain hosts US Fifth Fleet"]},
+  {id:"EG",name:"Egypt",    emoji:"🇪🇬",col:"#ff5500",status:"CRITICAL",
+   cx:478,cy:248,
+   headline:"Suez Canal throughput collapsing",
+   detail:"Suez Canal Authority reports 65% drop in northbound tanker traffic. Egypt's $10B annual canal revenue at risk. LNG re-export terminals offline.",
+   exports:"Suez Canal — 12% of global trade · LNG re-exports · 2M bbl/d transit",
+   keyFacts:["65% drop in tanker traffic","$10B annual revenue at risk","LNG re-export terminals offline","Egypt itself faces gas shortage"]},
+];
+
+const weekProjections=[
+  {week:"WEEK 1",label:"Initial Shock",col:"#ff3333",icon:"⚡",
+   gdp:"-0.3%",trade:"-$45B",energy:"+38%",food:"+8%",
+   overview:"Markets react violently. Emergency reserves activated. Shipping routes disrupted.",
+   regions:[
+     {r:"East Asia",txt:"Japan & Korea activate emergency reserves. LNG spot prices surge 40%. Semiconductor factories on backup power protocols."},
+     {r:"South Asia",txt:"Pakistan & Bangladesh declare energy emergencies. Rolling blackouts begin in industrial zones. Textile export orders cancelled."},
+     {r:"Middle East",txt:"Strait of Hormuz traffic drops 60%. Shipping insurance premiums triple overnight. Tanker rerouting begins around Cape of Good Hope."},
+     {r:"Global Markets",txt:"Oil spikes to $130+/bbl. Energy stocks surge 25%. Airlines announce fuel surcharges. G7 emergency call convened."},
+   ],
+   industries:[
+     {n:"Power Generation",imp:"High",txt:"Gas-fired plants begin emergency load shedding in Pakistan, Bangladesh. Japan & Korea on backup protocols."},
+     {n:"Semiconductors",imp:"Medium",txt:"TSMC & Samsung activate contingency power. No output impact yet but risk is elevated."},
+     {n:"Fertilizers",imp:"Medium",txt:"Ammonia plant warnings issued. No shutdowns yet but feedstock anxiety rising. Prices up 25%."},
+     {n:"Shipping & Ports",imp:"Critical",txt:"Suez Canal throughput drops 60%. Cape of Good Hope rerouting adds 10–14 days and $500k/voyage."},
+     {n:"Aviation",imp:"Low-Med",txt:"Jet fuel surcharges announced. No route cancellations yet. Futures markets pricing in 20% increase."},
+   ]},
+  {week:"WEEK 2",label:"Supply Scramble",col:"#ff6600",icon:"🔄",
+   gdp:"-0.8%",trade:"-$120B",energy:"+55%",food:"+15%",
+   overview:"Alternative suppliers overwhelmed. Industrial rationing begins. Food system stress visible.",
+   regions:[
+     {r:"East Asia",txt:"Japan begins rationing industrial gas. Korea's POSCO steel cuts output 30%. Samsung and TSMC activate full contingency power plans."},
+     {r:"South Asia",txt:"India declares national gas emergency. Fertilizer plants shut down nationwide — winter crop at severe risk. CNG stations rationing fuel."},
+     {r:"Europe",txt:"EU activates Strategic Gas Reserve. Spot market scramble for US and Australian LNG. Prices hit record €200/MWh on European exchanges."},
+     {r:"Global Supply",txt:"US LNG terminals operating at 110% capacity. Australian LNG diverted from Asia to Europe. Shipping bottlenecks at every major port."},
+   ],
+   industries:[
+     {n:"Power Generation",imp:"Critical",txt:"Rolling blackouts in Pakistan (3 provinces), Bangladesh (nationwide), Sri Lanka. Japan industrial load shedding begins."},
+     {n:"Fertilizers & Food",imp:"Critical",txt:"India, Pakistan fertilizer plants shutting down. Ammonia prices +80%. Winter planting season at risk across South Asia."},
+     {n:"Steel & Metals",imp:"High",txt:"POSCO output cut 30%. Nippon Steel reducing blast furnace operations. Tata Steel India on emergency power. Auto sector warns of shortage."},
+     {n:"Semiconductors",imp:"High",txt:"TSMC reduces non-critical fab operations 10%. Samsung on brownout protocols. Global chip lead times extending rapidly."},
+     {n:"Petrochemicals",imp:"High",txt:"Naphtha crackers in Japan and Korea reducing output. Plastic feedstock prices +45%. Pharma ingredient shortages emerging."},
+   ]},
+  {week:"WEEK 3",label:"Industrial Rationing",col:"#ffaa00",icon:"🏭",
+   gdp:"-1.8%",trade:"-$280B",energy:"+70%",food:"+25%",
+   overview:"Major industrial shutdowns cascade globally. Food crisis officially declared by UN agencies.",
+   regions:[
+     {r:"East Asia",txt:"Taiwan power grid on emergency rotation — TSMC chip production drops 15%. Japan closes all non-essential industrial plants. Korean won in freefall."},
+     {r:"South Asia",txt:"Bangladesh garment factories forced offline — $38B export sector at risk. Pakistan grid collapses in 3 provinces. UN food security warning issued."},
+     {r:"Food Crisis",txt:"Global fertilizer prices +80%. India wheat and rice planting season severely disrupted. WFP declares emergency in 14 nations."},
+     {r:"Finance",txt:"Global markets down 12–18%. Energy sector up 35%. Central banks issue emergency liquidity statements. IMF convenes emergency board."},
+   ],
+   industries:[
+     {n:"Fertilizers & Food",imp:"Catastrophic",txt:"Ammonia production collapsed across South Asia. UN WFP emergency in 14 countries. Food price index at 2008 crisis levels."},
+     {n:"Garments & Textiles",imp:"Critical",txt:"Bangladesh & Pakistan garment sectors offline. $80B+ annual export capacity gone. Global fashion supply chain fractures."},
+     {n:"Semiconductors",imp:"Critical",txt:"TSMC output down 15%. Global chip shortage Wave 2 begins. Auto, consumer electronics, defense all impacted."},
+     {n:"Steel & Metals",imp:"Critical",txt:"Major blast furnaces offline in Japan, Korea, India. Construction and auto manufacturing halted in 8 countries."},
+     {n:"Aluminum",imp:"High",txt:"ALBA (Bahrain) at 40% capacity. Global aluminum prices up 55%. Aerospace, automotive, packaging sectors impacted severely."},
+   ]},
+  {week:"WEEK 4",label:"Economic Crisis",col:"#ffcc00",icon:"📉",
+   gdp:"-3.2%",trade:"-$480B",energy:"+90%",food:"+40%",
+   overview:"Global recession officially declared. Sovereign debt crises emerging. G20 emergency summit.",
+   regions:[
+     {r:"Manufacturing",txt:"Global auto production halted — Toyota, Hyundai suspend operations. Electronics supply chain fractures. Component shortages cascade into 40+ industries."},
+     {r:"Developing Nations",txt:"Pakistan, Bangladesh, Sri Lanka face currency crises. IMF emergency meetings. Debt defaults possible. Civil unrest reports in 6 countries."},
+     {r:"Food & Agriculture",txt:"Global food price index hits 2008 crisis levels. WFP declares emergency in 14 nations. Fertilizer shortage locks in 6-month food security impact."},
+     {r:"Geopolitics",txt:"NATO energy security emergency declared. UN Security Council emergency session. US Fifth Fleet on heightened alert in Persian Gulf."},
+   ],
+   industries:[
+     {n:"Autos & Manufacturing",imp:"Catastrophic",txt:"Toyota, Hyundai, VW suspend production. 40+ downstream industries impacted. $200B in halted production value in Week 4 alone."},
+     {n:"Water & Desalination",imp:"Critical",txt:"GCC nations face water security risk — ironic crisis. Saudi, UAE, Kuwait desalination plants on reduced gas. Rationing begins."},
+     {n:"Finance & Banking",imp:"Critical",txt:"3 emerging market sovereign debt downgrades. Energy derivatives cascade. Hedge fund liquidations. Global credit tightening."},
+     {n:"Pharmaceuticals",imp:"High",txt:"India API (active pharma ingredient) production disrupted. Global drug shortages for 80+ generic medicines. Hospital supply chains stressed."},
+     {n:"Aviation & Tourism",imp:"Critical",txt:"50+ airline route suspensions. Jet fuel at record prices. Tourism collapse in GCC and connecting hubs. $120B aviation revenue loss."},
+   ]},
+  {week:"WEEK 5+",label:"Systemic Disruption",col:"#cc44ff",icon:"🌍",
+   gdp:"-5%+",trade:"-$700B+",energy:"+120%+",food:"+60%+",
+   overview:"Permanent structural shifts begin. New energy order emerging. Recovery timeline: 18–36 months.",
+   regions:[
+     {r:"Global Recession",txt:"World Bank declares global recession risk at 75%. G20 emergency summit convened. IMF activates $500B emergency facility. Worst since 2008."},
+     {r:"Energy Transition",txt:"Fastest renewable energy buildout in history triggered. Nuclear restart programs accelerated in Japan, Germany, Belgium. Solar & wind orders surge 400%."},
+     {r:"Supply Rerouting",txt:"US becomes dominant LNG supplier. New long-term contracts signed with Australia, Mozambique, Canada. Qatar supply routes renegotiated at premium."},
+     {r:"New World Order",txt:"GCC geopolitical influence permanently diminished. Accelerated global decarbonization. Strategic energy reserves doubled across all OECD nations."},
+   ],
+   industries:[
+     {n:"Energy Transition",imp:"Transformative",txt:"$2T+ committed globally to renewables in emergency packages. Solar, wind, battery storage see historic investment. Gas dependency era ending."},
+     {n:"LNG & Gas",imp:"Structural shift",txt:"New suppliers (US, Australia, Mozambique, Canada) lock in 20-year contracts. Qatar's market share never fully recovers. LNG price permanently elevated."},
+     {n:"Food Systems",imp:"Long-term",txt:"Green ammonia (renewable-powered fertilizer) investment surges. Food security becomes national security priority globally. Supply chains restructured."},
+     {n:"Semiconductors",imp:"Recovery 6–18mo",txt:"Emergency fab expansions approved in US, EU, Japan. CHIPS Act II fast-tracked. Recovery begins but full capacity 12–18 months away."},
+     {n:"Geopolitics",imp:"Permanent",txt:"Middle East influence reshaped. Energy as geopolitical weapon precedent set. New Gulf security architecture negotiated with NATO involvement."},
+   ]},
+];
+
+// Leaflet-based real map component
+function RealMap(){
+  const mapRef=useRef(null);
+  const mapInstance=useRef(null);
+  const [ready,setReady]=useState(false);
+
+  useEffect(()=>{
+    // Load leaflet CSS
+    if(!document.getElementById('leaflet-css')){
+      const link=document.createElement('link');
+      link.id='leaflet-css';
+      link.rel='stylesheet';
+      link.href='https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css';
+      document.head.appendChild(link);
+    }
+    // Load leaflet JS
+    if(!window.L){
+      const script=document.createElement('script');
+      script.src='https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js';
+      script.onload=()=>setReady(true);
+      document.head.appendChild(script);
+    } else {
+      setReady(true);
+    }
+  },[]);
+
+  useEffect(()=>{
+    if(!ready||!mapRef.current||mapInstance.current)return;
+    const L=window.L;
+
+    const map=L.map(mapRef.current,{
+      center:[26,48],zoom:5,
+      zoomControl:true,
+      scrollWheelZoom:true,
+      attributionControl:false,
+    });
+
+    // Dark tile layer
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{
+      maxZoom:18,attribution:''
+    }).addTo(map);
+
+    // Custom icon factory
+    const makeIcon=(col,pulse)=>L.divIcon({
+      className:'',
+      html:`<div style="position:relative;width:36px;height:36px;display:flex;align-items:center;justify-content:center;">
+        ${pulse?`<div style="position:absolute;inset:0;border-radius:50%;border:2px solid ${col};animation:ping 1.4s ease-out infinite;"></div>`:''}
+        <div style="width:16px;height:16px;border-radius:50%;background:${col};border:2px solid ${col}cc;box-shadow:0 0 12px ${col},0 0 4px ${col};"></div>
+      </div>
+      <style>@keyframes ping{0%{transform:scale(1);opacity:0.8}100%{transform:scale(2.5);opacity:0}}</style>`,
+      iconSize:[36,36],iconAnchor:[18,18],
+    });
+
+    const statusColor={HALTED:"#ff2222",DISRUPTED:"#ff7700",REDUCED:"#ffaa00",CRITICAL:"#ff4400"};
+
+    gcc.forEach(c=>{
+      const coords={
+        QA:[25.28,51.53],AE:[24.45,54.37],SA:[24.68,46.72],
+        KW:[29.37,47.98],BH:[26.07,50.55],EG:[26.82,30.80]
+      };
+      const col=c.col;
+      const marker=L.marker(coords[c.id],{icon:makeIcon(col,c.status==="HALTED"||c.status==="DISRUPTED"||c.status==="CRITICAL")});
+
+      const popupHtml=`
+        <div style="background:#060f1c;border:1px solid ${col}99;border-radius:12px;padding:16px;min-width:260px;max-width:300px;font-family:'Inter',system-ui,sans-serif;color:#e0e8f0;">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
+            <span style="font-size:22px;">${c.emoji}</span>
+            <div>
+              <div style="font-weight:800;font-size:15px;color:#e8f0f8;">${c.name}</div>
+              <div style="font-size:10px;letter-spacing:2px;font-weight:700;color:${col};margin-top:1px;">${c.status}</div>
+            </div>
+          </div>
+          <div style="background:${col}18;border:1px solid ${col}44;border-radius:8px;padding:8px 10px;margin-bottom:10px;">
+            <div style="font-size:11px;font-weight:700;color:${col};margin-bottom:3px;">⚠️ ${c.headline}</div>
+            <div style="font-size:10px;color:#8898a8;line-height:1.6;">${c.detail}</div>
+          </div>
+          <div style="font-size:10px;color:#6878a0;margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid rgba(255,255,255,0.07);">
+            📊 ${c.exports}
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:5px;">
+            ${c.keyFacts.map(f=>`<div style="font-size:9px;color:#8090a0;background:rgba(255,255,255,0.04);border-radius:5px;padding:4px 7px;">• ${f}</div>`).join('')}
+          </div>
+        </div>`;
+
+      marker.bindPopup(L.popup({
+        maxWidth:320,minWidth:280,
+        className:'dark-popup',
+        closeButton:true,
+        offset:[0,-8],
+      }).setContent(popupHtml));
+
+      marker.addTo(map);
+    });
+
+    // Popup dark styling
+    const style=document.createElement('style');
+    style.textContent=`
+      .dark-popup .leaflet-popup-content-wrapper{background:transparent;border:none;box-shadow:0 8px 32px rgba(0,0,0,0.8);padding:0;border-radius:12px;}
+      .dark-popup .leaflet-popup-content{margin:0;border-radius:12px;overflow:hidden;}
+      .dark-popup .leaflet-popup-tip-container{display:none;}
+      .leaflet-container{background:#04080f;}
+    `;
+    document.head.appendChild(style);
+
+    mapInstance.current=map;
+  },[ready]);
+
+  return(
+    <div style={{margin:"14px 0",background:"rgba(4,12,22,0.97)",border:"1px solid rgba(255,100,0,0.22)",borderRadius:18,padding:"16px 18px"}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12,flexWrap:"wrap",gap:8}}>
+        <div style={{fontFamily:"monospace",fontSize:12,color:"#ff8800",letterSpacing:2}}>⚡ GCC SOURCE NATIONS — LIVE SUPPLY STATUS · Hover markers for full detail</div>
+        <div style={{display:"flex",gap:12,flexWrap:"wrap",alignItems:"center"}}>
+          {[{col:"#ff2222",l:"HALTED"},{col:"#ff7700",l:"DISRUPTED"},{col:"#ffaa00",l:"REDUCED"},{col:"#ff4400",l:"CRITICAL"}].map((x,i)=>(
+            <div key={i} style={{display:"flex",alignItems:"center",gap:5,fontSize:10,color:x.col}}>
+              <div style={{width:8,height:8,borderRadius:"50%",background:x.col,boxShadow:`0 0 5px ${x.col}`}}/>{x.l}
+            </div>
+          ))}
+        </div>
+      </div>
+      <div ref={mapRef} style={{height:360,borderRadius:12,overflow:"hidden",border:"1px solid rgba(0,100,160,0.2)"}}/>
+      {/* Status strip */}
+      <div style={{display:"grid",gridTemplateColumns:"repeat(6,1fr)",gap:8,marginTop:12}}>
+        {gcc.map((c,i)=>(
+          <div key={i} style={{background:"rgba(0,0,0,0.4)",borderRadius:9,padding:"9px 10px",borderLeft:`3px solid ${c.col}`}}>
+            <div style={{display:"flex",alignItems:"center",gap:5,marginBottom:3}}>
+              <span style={{fontSize:13}}>{c.emoji}</span>
+              <span style={{fontSize:10,fontWeight:700,color:"#c0d0e0"}}>{c.name}</span>
+              <span style={{marginLeft:"auto",fontSize:8,color:c.col,fontWeight:700,fontFamily:"monospace"}}>{c.status}</span>
+            </div>
+            <div style={{fontSize:9,color:"#ff9966",lineHeight:1.4}}>{c.headline}</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function TankGauge({level}){
+  const fill=level>=50?"#22cc55":level>=35?"#ffcc00":level>=20?"#ff8800":"#ff3333";
+  return(
+    <div style={{position:"relative",height:13,background:"rgba(0,0,0,0.55)",borderRadius:7,border:"1px solid rgba(255,255,255,0.09)",overflow:"hidden",margin:"6px 0"}}>
+      <div style={{width:`${level}%`,height:"100%",background:`linear-gradient(90deg,${fill}77,${fill})`,borderRadius:7}}>
+        <div style={{position:"absolute",inset:0,background:"linear-gradient(180deg,rgba(255,255,255,0.18),transparent)",borderRadius:7}}/>
+      </div>
+      {[25,50,75].map(t=><div key={t} style={{position:"absolute",left:`${t}%`,top:0,bottom:0,width:1,background:"rgba(255,255,255,0.1)"}}/>)}
+    </div>
+  );
+}
+
+function Blink({col}){
+  const [on,setOn]=useState(true);
+  useEffect(()=>{const t=setInterval(()=>setOn(v=>!v),750);return()=>clearInterval(t);},[]);
+  return <div style={{width:9,height:9,borderRadius:"50%",background:on?col:"transparent",border:`2px solid ${col}`,boxShadow:on?`0 0 7px ${col}`:"none",transition:"all 0.3s",flexShrink:0}}/>;
+}
+
+function Card({c}){
+  const [h,setH]=useState(false);
+  const tc=c.level>=50?"#44cc77":c.level>=35?"#ffcc00":c.level>=20?"#ff8800":"#ff4444";
+  const gccNames={qatar:"🇶🇦 Qatar",uae:"🇦🇪 UAE",ksa:"🇸🇦 Saudi",kuwait:"🇰🇼 Kuwait",bahrain:"🇧🇭 Bahrain",egypt:"🇪🇬 Egypt"};
+  return(
+    <div onMouseEnter={()=>setH(true)} onMouseLeave={()=>setH(false)}
+      style={{background:h?"rgba(12,28,44,0.99)":"rgba(5,15,28,0.95)",border:`1px solid ${c.col}44`,borderTop:`2px solid ${c.col}`,borderRadius:12,padding:"12px 13px",transition:"all 0.2s",transform:h?"translateY(-2px)":"none",boxShadow:h?`0 8px 24px ${c.col}22`:"none",cursor:"default",minWidth:0,position:"relative",zIndex:h?10:1}}>
+      <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:4}}>
+        <div style={{display:"flex",alignItems:"center",gap:7}}>
+          <span style={{fontSize:20}}>{c.flag}</span>
+          <span style={{fontWeight:700,fontSize:13,color:"#d0e8f0"}}>{c.name}</span>
+        </div>
+        <div style={{display:"flex",alignItems:"center",gap:5}}>
+          <Blink col={c.col}/>
+          <span style={{fontSize:9,fontWeight:700,color:c.col,letterSpacing:1}}>{c.sev}</span>
+        </div>
+      </div>
+      <TankGauge level={c.level}/>
+      <div style={{display:"flex",justifyContent:"space-between",marginTop:2}}>
+        <span style={{fontSize:9,color:"#304050",fontFamily:"monospace"}}>E</span>
+        <span style={{fontFamily:"monospace",fontSize:11,fontWeight:700,color:tc}}>{c.level}%</span>
+        <span style={{fontSize:9,color:"#304050",fontFamily:"monospace"}}>F</span>
+      </div>
+      {h&&(
+        <div style={{position:"absolute",top:"100%",left:0,right:0,background:"rgba(8,20,36,0.99)",border:`1px solid ${c.col}66`,borderRadius:12,padding:"12px 13px",zIndex:50,animation:"fadeIn 0.18s ease",boxShadow:`0 12px 32px rgba(0,0,0,0.8)`}}>
+          <div style={{fontSize:10,color:"#506070",fontWeight:700,marginBottom:7,letterSpacing:1,textTransform:"uppercase"}}>GCC Import Breakdown</div>
+          {Object.entries(c.imports).map(([k,v])=>(
+            <div key={k} style={{fontSize:10,color:"#708090",marginBottom:4,display:"flex",gap:6,alignItems:"flex-start"}}>
+              <span style={{color:"#ff9966",fontWeight:700,minWidth:68,fontSize:9,flexShrink:0}}>{gccNames[k]}</span>
+              <span style={{color:"#9098b0",lineHeight:1.4}}>{v}</span>
+            </div>
+          ))}
+          <div style={{marginTop:8,paddingTop:8,borderTop:"1px solid rgba(255,255,255,0.06)"}}>
+            <div style={{fontSize:10,color:"#606880",marginBottom:3}}>🏭 <span style={{color:"#b0b8c8"}}>{c.industry}</span></div>
+            <div style={{fontSize:10,color:"#606880"}}>💸 Est. 90d loss: <span style={{color:"#ff7744",fontFamily:"monospace",fontWeight:700}}>{c.loss}</span></div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ProjectionSection(){
+  const [active,setActive]=useState(0);
+  const p=weekProjections[active];
+  const impCol={High:"#ff6600","Medium":"#ffcc00","Low-Med":"#aacc00","Critical":"#ff2222","Catastrophic":"#cc0000","Structural shift":"#cc44ff","Long-term":"#4488ff","Recovery 6–18mo":"#44cc77","Permanent":"#ff44aa","Transformative":"#00ccff"};
+  return(
+    <div style={{background:"rgba(4,12,22,0.97)",border:`1px solid ${p.col}44`,borderRadius:18,padding:"18px 20px",marginBottom:14,transition:"border-color 0.3s"}}>
+      <div style={{fontFamily:"monospace",fontSize:12,color:"#ffaa00",letterSpacing:2,marginBottom:14}}>📅 DURATION SCENARIOS — What happens if the crisis continues?</div>
+      <div style={{display:"flex",gap:8,marginBottom:18,flexWrap:"wrap"}}>
+        {weekProjections.map((pr,i)=>(
+          <button key={i} onClick={()=>setActive(i)} style={{padding:"8px 14px",borderRadius:10,border:`1px solid ${pr.col}${active===i?"cc":"44"}`,background:active===i?`${pr.col}22`:"rgba(0,0,0,0.3)",color:active===i?pr.col:"#607080",fontFamily:"monospace",fontSize:11,fontWeight:700,cursor:"pointer",transition:"all 0.2s",letterSpacing:1}}>
+            {pr.icon} {pr.week}
+          </button>
+        ))}
+      </div>
+      <div style={{animation:"fadeIn 0.2s ease"}}>
+        <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:12,flexWrap:"wrap"}}>
+          <div style={{fontSize:20,fontWeight:900,fontFamily:"monospace",color:p.col}}>{p.icon} {p.week} — {p.label}</div>
+        </div>
+        <div style={{background:`${p.col}11`,border:`1px solid ${p.col}33`,borderRadius:10,padding:"10px 14px",marginBottom:14,fontSize:12,color:"#c0c8d8",lineHeight:1.6}}>
+          {p.overview}
+        </div>
+        <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:10,marginBottom:16}}>
+          {[{l:"GDP Impact",v:p.gdp,c:"#ff5555"},{l:"Trade Loss",v:p.trade,c:"#ff8800"},{l:"Energy Prices",v:p.energy,c:"#ffcc00"},{l:"Food Prices",v:p.food,c:"#ff9966"}].map((s,i)=>(
+            <div key={i} style={{textAlign:"center",background:"rgba(0,0,0,0.35)",padding:"10px",borderRadius:8,border:`1px solid ${s.c}33`}}>
+              <div style={{fontSize:18,fontWeight:800,fontFamily:"monospace",color:s.c}}>{s.v}</div>
+              <div style={{fontSize:9,color:"#506070",letterSpacing:1,marginTop:2}}>{s.l}</div>
+            </div>
+          ))}
+        </div>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
+          <div>
+            <div style={{fontSize:10,color:"#607080",letterSpacing:2,textTransform:"uppercase",marginBottom:8}}>Regional Impact</div>
+            <div style={{display:"flex",flexDirection:"column",gap:8}}>
+              {p.regions.map((sc,i)=>(
+                <div key={i} style={{background:"rgba(0,0,0,0.35)",borderRadius:9,padding:"10px 12px",borderLeft:`3px solid ${p.col}`}}>
+                  <div style={{fontSize:10,fontWeight:700,color:p.col,letterSpacing:1,textTransform:"uppercase",marginBottom:4}}>{sc.r}</div>
+                  <div style={{fontSize:10,color:"#8898a8",lineHeight:1.6}}>{sc.txt}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div>
+            <div style={{fontSize:10,color:"#607080",letterSpacing:2,textTransform:"uppercase",marginBottom:8}}>Industry Impact This Week</div>
+            <div style={{display:"flex",flexDirection:"column",gap:8}}>
+              {p.industries.map((ind,i)=>{
+                const ic=impCol[ind.imp]||"#ff8800";
+                return(
+                  <div key={i} style={{background:"rgba(0,0,0,0.35)",borderRadius:9,padding:"10px 12px",borderLeft:`3px solid ${ic}`}}>
+                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:4}}>
+                      <div style={{fontSize:10,fontWeight:700,color:"#c0d0e0"}}>{ind.n}</div>
+                      <span style={{fontSize:9,fontWeight:700,background:`${ic}22`,color:ic,padding:"2px 8px",borderRadius:8,border:`1px solid ${ic}44`}}>{ind.imp}</span>
+                    </div>
+                    <div style={{fontSize:10,color:"#8898a8",lineHeight:1.6}}>{ind.txt}</div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function IndustrySection(){
+  const industries=[
+    {name:"Power Generation",  icon:"⚡",impact:88,col:"#ff3333",affected:"Japan, Korea, Pakistan, Bangladesh, Taiwan",
+     byWeek:["W1: Emergency reserves activated, backup protocols","W2: Rolling blackouts in Pakistan, Bangladesh","W3: Major industrial load shedding Japan, Korea","W4: Grid failures in 3+ developing nations","W5+: Permanent shift to renewables & nuclear accelerated"]},
+    {name:"Fertilizers & Food",icon:"🌾",impact:85,col:"#ff4444",affected:"India, Pakistan, Bangladesh, EU",
+     byWeek:["W1: Ammonia prices up 25%, no shutdowns yet","W2: Plants shutting down across South Asia","W3: UN WFP emergency — 14 nations","W4: Food price index at 2008 crisis levels","W5+: Green ammonia investment surge, food system restructured"]},
+    {name:"Semiconductors",    icon:"💻",impact:78,col:"#ff5555",affected:"Taiwan, South Korea, Japan",
+     byWeek:["W1: Contingency power activated at TSMC & Samsung","W2: Non-critical fab operations reduced 10%","W3: Output down 15% — chip shortage Wave 2 begins","W4: Global shortage across auto, defense, consumer tech","W5+: Emergency fab expansions, 12–18mo to recovery"]},
+    {name:"Petrochemicals",    icon:"🧪",impact:75,col:"#ff6633",affected:"Japan, Korea, Singapore, EU",
+     byWeek:["W1: Feedstock anxiety, prices up 20%","W2: Naphtha crackers reducing output","W3: Plastic & pharma ingredient shortages","W4: Major chemical plants offline","W5+: Bio-based feedstock alternatives fast-tracked"]},
+    {name:"Steel & Metals",    icon:"🔩",impact:70,col:"#ff7700",affected:"Japan, Korea, India, EU",
+     byWeek:["W1: Warnings issued, no output impact","W2: POSCO cuts 30%, Nippon Steel reducing","W3: Major blast furnaces offline globally","W4: Construction & auto manufacturing halted","W5+: Structural rebalancing of steel supply chains"]},
+    {name:"Aluminum",          icon:"⛏️",impact:65,col:"#ff8800",affected:"Bahrain (ALBA), UAE, Gulf",
+     byWeek:["W1: ALBA on reduced power schedule","W2: Output cut 25%, prices up 30%","W3: Output cut 40%, aerospace sector impacted","W4: Global aluminum shortage — auto, packaging","W5+: Non-Gulf smelters expanding rapidly"]},
+    {name:"Shipping & Ports",  icon:"⚓",impact:80,col:"#ff4422",affected:"Egypt (Suez), Singapore, UAE",
+     byWeek:["W1: Suez drops 60%, Cape rerouting begins","W2: Freight rates up 180%, 14-day delays","W3: Port congestion at Rotterdam, Singapore","W4: Supply chains for 30% of global trade broken","W5+: New trade routes permanently established"]},
+    {name:"Textiles & Garments",icon:"👗",impact:72,col:"#ff6600",affected:"Bangladesh, Pakistan, India",
+     byWeek:["W1: Order cancellations begin","W2: Gas rationing forces partial shutdowns","W3: Bangladesh & Pakistan sectors offline","W4: $80B annual export capacity gone","W5+: Southeast Asia fills capacity gap (Vietnam, Cambodia)"]},
+    {name:"Aviation & Fuel",   icon:"✈️",impact:55,col:"#ffaa00",affected:"Global — all airlines",
+     byWeek:["W1: Fuel surcharges announced","W2: Long-haul routes repriced","W3: 20+ routes suspended","W4: 50+ route suspensions, $120B revenue loss","W5+: Aviation restructuring, SAF investment surges"]},
+    {name:"Water/Desalination", icon:"💧",impact:80,col:"#ff3300",affected:"Saudi, UAE, Kuwait, Qatar, Bahrain",
+     byWeek:["W1: Desalination plants on gas reduction protocol","W2: Water rationing warnings in Gulf cities","W3: Dubai, Riyadh water rationing begins","W4: Humanitarian water emergency in Gulf","W5+: Solar-powered desalination investment surges"]},
+    {name:"Pharmaceuticals",   icon:"💊",impact:50,col:"#ffbb00",affected:"India, EU, Global",
+     byWeek:["W1: API feedstock concerns raised","W2: Indian pharma on gas rationing","W3: 80+ generic medicine shortages","W4: Hospital supply chains critically stressed","W5+: API manufacturing diversification accelerated"]},
+    {name:"Finance & Banking", icon:"🏦",impact:45,col:"#ffcc00",affected:"Global — market volatility",
+     byWeek:["W1: Energy stocks +25%, markets volatile","W2: EM currencies under pressure","W3: Central banks emergency liquidity","W4: 3 sovereign debt downgrades, IMF intervention","W5+: New financial order, energy as collateral"]},
+  ];
+
+  const [expanded,setExpanded]=useState(null);
+  return(
+    <div style={{background:"rgba(4,12,22,0.97)",border:"1px solid rgba(0,150,200,0.18)",borderRadius:18,padding:"18px 20px",marginBottom:14}}>
+      <div style={{fontFamily:"monospace",fontSize:12,color:"#44aaff",letterSpacing:2,marginBottom:6}}>🏭 INDUSTRIES AT RISK — Click any industry for week-by-week projection</div>
+      <div style={{fontSize:10,color:"#405060",marginBottom:14}}>Impact severity shown as % disruption risk. Click to expand timeline.</div>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(280px,1fr))",gap:10}}>
+        {industries.map((ind,i)=>(
+          <div key={i} onClick={()=>setExpanded(expanded===i?null:i)}
+            style={{background:expanded===i?"rgba(10,25,40,0.99)":"rgba(0,0,0,0.35)",borderRadius:10,padding:"12px 14px",border:`1px solid ${expanded===i?ind.col+"88":"rgba(255,255,255,0.05)"}`,cursor:"pointer",transition:"all 0.2s"}}>
+            <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:6}}>
+              <div style={{display:"flex",alignItems:"center",gap:7}}>
+                <span style={{fontSize:18}}>{ind.icon}</span>
+                <span style={{fontSize:12,fontWeight:700,color:"#c0d0e0"}}>{ind.name}</span>
+              </div>
+              <span style={{fontFamily:"monospace",fontSize:13,fontWeight:800,color:ind.col}}>{ind.impact}%</span>
+            </div>
+            <div style={{height:6,background:"rgba(255,255,255,0.06)",borderRadius:3,overflow:"hidden",marginBottom:7}}>
+              <div style={{width:`${ind.impact}%`,height:"100%",background:`linear-gradient(90deg,${ind.col}88,${ind.col})`,borderRadius:3}}/>
+            </div>
+            <div style={{fontSize:9,color:"#ff8855",marginBottom:expanded===i?8:0}}>📍 {ind.affected}</div>
+            {expanded===i&&(
+              <div style={{marginTop:8,paddingTop:8,borderTop:"1px solid rgba(255,255,255,0.07)",animation:"fadeIn 0.2s ease"}}>
+                <div style={{fontSize:10,color:ind.col,fontWeight:700,marginBottom:6,letterSpacing:1}}>WEEK-BY-WEEK PROJECTION</div>
+                {ind.byWeek.map((w,j)=>(
+                  <div key={j} style={{display:"flex",gap:8,marginBottom:5,alignItems:"flex-start"}}>
+                    <span style={{fontSize:9,fontFamily:"monospace",color:ind.col,fontWeight:700,flexShrink:0,minWidth:22}}>{j+1===5?"5+":j+1}</span>
+                    <span style={{fontSize:10,color:"#8090a0",lineHeight:1.5}}>{w.replace(/^W\d\+?: /,"")}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function Divider({label,col}){
+  return(
+    <div style={{display:"flex",alignItems:"center",gap:10,margin:"14px 0 10px"}}>
+      <div style={{flex:1,height:1,background:`linear-gradient(90deg,transparent,${col}55,transparent)`}}/>
+      <span style={{fontSize:10,color:"#405060",letterSpacing:2,textTransform:"uppercase",whiteSpace:"nowrap"}}>{label}</span>
+      <div style={{flex:1,height:1,background:`linear-gradient(90deg,transparent,${col}55,transparent)`}}/>
+    </div>
+  );
+}
+
+function App(){
+  return(
+    <div style={{minHeight:"100vh"}}>
+      <div style={{background:"rgba(255,30,30,0.1)",borderBottom:"1px solid rgba(255,30,30,0.25)",padding:"9px 0",overflow:"hidden",position:"sticky",top:0,zIndex:200,backdropFilter:"blur(4px)"}}>
+        <div style={{display:"flex",whiteSpace:"nowrap",animation:"scroll 38s linear infinite"}}>
+          {["🔴 BREAKING — Qatar halts ALL LNG shipments · No restart timeline","⚠️ UAE: ADNOC 500k bbl/day offline · Jebel Ali congested","🔴 Saudi Aramco Ras Tanura partial shutdown · 30% export cut","⚠️ Kuwait KPC partial force majeure · Al-Ahmadi port 30% capacity","🔴 Bahrain BAPCO cuts 25% · ALBA smelter reduced power","🚨 Egypt: Suez Canal throughput down 65% · $10B revenue at risk","⚠️ Japan activates 90-day strategic reserves","🔴 S.Korea LNG spot +34% in 48hrs · POSCO emergency protocols","⚠️ Pakistan: 4,200MW at risk · Grid emergency declared","🔴 Bangladesh: UN humanitarian concern · Garment sector at risk","⚠️ India GAIL force majeure on Qatar contracts",
+            "🔴 BREAKING — Qatar halts ALL LNG shipments","⚠️ UAE ADNOC offline","🔴 Saudi 30% cut","⚠️ Kuwait force majeure","🚨 Suez Canal 65% down"
+          ].map((t,i)=><span key={i} style={{display:"inline-block",padding:"0 44px",fontSize:11,color:"#ff8855",fontFamily:"monospace",letterSpacing:1}}>{t}</span>)}
+        </div>
+      </div>
+
+      <div style={{maxWidth:1320,margin:"0 auto",padding:"18px 16px"}}>
+        <div style={{textAlign:"center",marginBottom:20}}>
+          <div style={{display:"inline-flex",alignItems:"center",gap:8,background:"rgba(255,40,40,0.12)",border:"1px solid rgba(255,40,40,0.35)",borderRadius:20,padding:"5px 18px",fontSize:10,color:"#ff6060",letterSpacing:2,marginBottom:13,textTransform:"uppercase"}}>
+            <div style={{width:7,height:7,borderRadius:"50%",background:"#ff3333",animation:"pulse 1.2s ease-in-out infinite"}}/>
+            LIVE CRISIS MONITOR · MARCH 2026
+          </div>
+          <div style={{fontSize:"clamp(22px,4vw,40px)",fontWeight:900,fontFamily:"monospace",background:"linear-gradient(135deg,#ff5555,#ffaa00)",WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",lineHeight:1.2,marginBottom:9}}>GCC ENERGY CRISIS<br/>GLOBAL IMPACT TRACKER</div>
+          <p style={{color:"#506070",fontSize:12,maxWidth:640,margin:"0 auto"}}>
+            Hover country cards for full import breakdown · Click map markers for country detail · Click industries for week-by-week projections
+          </p>
+        </div>
+
+        <Divider label="Affected Nations — Hover Cards for Full GCC Import Breakdown" col="#ff4444"/>
+        <div style={{display:"grid",gridTemplateColumns:"repeat(6,1fr)",gap:10,marginBottom:4}}>
+          {countries.slice(0,6).map((c,i)=><Card key={i} c={c}/>)}
+        </div>
+        <div style={{display:"grid",gridTemplateColumns:"repeat(6,1fr)",gap:10}}>
+          {countries.slice(6,12).map((c,i)=><Card key={i} c={c}/>)}
+        </div>
+
+        <RealMap/>
+
+        <div style={{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:10,marginBottom:14}}>
+          {[
+            {col:"#ff4444",label:"Qatar LNG Halted",val:"77M t/yr",sub:"≈25% of global LNG supply"},
+            {col:"#ff8800",label:"GCC Oil Disrupted",val:"3.2M bbl/d",sub:"Qatar+UAE+KSA+Kuwait offline"},
+            {col:"#ff5500",label:"Suez Canal Drop",val:"−65%",sub:"Egypt throughput collapse"},
+            {col:"#44aaff",label:"Economic Risk 90d",val:"$420B",sub:"Est. global GDP impact"},
+          ].map((s,i)=>(
+            <div key={i} style={{background:"rgba(5,14,26,0.95)",border:`1px solid ${s.col}33`,borderTop:`2px solid ${s.col}`,borderRadius:10,padding:"12px 14px"}}>
+              <div style={{fontSize:9,color:"#506070",letterSpacing:1.5,textTransform:"uppercase",marginBottom:5}}>{s.label}</div>
+              <div style={{fontFamily:"monospace",fontSize:20,fontWeight:800,color:s.col}}>{s.val}</div>
+              <div style={{fontSize:10,color:"#405060",marginTop:3}}>{s.sub}</div>
+            </div>
+          ))}
+        </div>
+
+        <Divider label="Duration Scenarios — Week by Week Projections" col="#ffaa00"/>
+        <ProjectionSection/>
+
+        <Divider label="Industries at Risk — Click for Week-by-Week Timeline" col="#44aaff"/>
+        <IndustrySection/>
+
+        <div style={{textAlign:"center",padding:"14px 0 8px",fontSize:10,color:"#2a3a4a",lineHeight:1.8}}>
+          Data: IEA · GIIGNL · BP Statistical Review · IMF · World Bank · All projections are model-based estimates · March 2026
+        </div>
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>
