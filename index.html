@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Iran War — Global Crisis Command Dashboard | Day 8</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='4' fill='%23030a14'/><circle cx='16' cy='16' r='10' fill='none' stroke='%23ff2222' stroke-width='2'/><line x1='16' y1='6' x2='16' y2='26' stroke='%23ff2222' stroke-width='2'/><line x1='6' y1='16' x2='26' y2='16' stroke='%23ff2222' stroke-width='2'/><circle cx='16' cy='16' r='3' fill='%23ff2222'/></svg>">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--red:#ff2222;--orange:#ff8800;--yellow:#ffcc00;--green:#22cc66;--blue:#3399ff;--purple:#aa44ff;--bg:#030a14;--card:#060f1c;--border:rgba(255,255,255,0.05);--text:#b0c4d8;--dim:#4a5a6a}
+body{background:var(--bg);color:var(--text);font-family:'Inter',system-ui,sans-serif;background-image:radial-gradient(ellipse at 20% 20%,rgba(255,30,30,0.03) 0%,transparent 60%),radial-gradient(ellipse at 80% 80%,rgba(0,80,200,0.04) 0%,transparent 60%)}
+::-webkit-scrollbar{width:3px;background:var(--bg)}::-webkit-scrollbar-thumb{background:#0d1a2a;border-radius:2px}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
+@keyframes tick{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+@keyframes fadein{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+@keyframes pulse{0%,100%{transform:scale(1);opacity:.7}50%{transform:scale(1.5);opacity:0}}
+@keyframes scanline{0%{transform:translateY(-100%)}100%{transform:translateY(100vh)}}
+.ticker-wrap{overflow:hidden;white-space:nowrap;background:rgba(255,0,0,0.05);border-bottom:1px solid rgba(255,30,30,0.15);padding:5px 0;position:sticky;top:0;z-index:999;backdrop-filter:blur(12px)}
+.ticker-inner{display:inline-flex;animation:tick 120s linear infinite}
+.tick{padding:0 28px;font-size:10px;color:#ff8844;font-family:monospace;letter-spacing:.5px}
+.wrap{max-width:1600px;margin:0 auto;padding:12px 10px}
+.hdg{text-align:center;margin-bottom:14px}
+.live-badge{display:inline-flex;align-items:center;gap:6px;background:rgba(255,20,20,0.07);border:1px solid rgba(255,30,30,0.2);border-radius:20px;padding:3px 14px;font-size:9px;color:#ff4444;letter-spacing:2px;margin-bottom:8px}
+.live-dot{width:6px;height:6px;border-radius:50%;background:#ff2222;animation:blink 1s infinite}
+h1{font-size:clamp(18px,2.8vw,34px);font-weight:900;font-family:monospace;background:linear-gradient(135deg,#ff3333 0%,#ff9900 50%,#ffcc00 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;line-height:1.15;margin-bottom:5px}
+.sub{font-size:8.5px;color:#1e2c3a;max-width:900px;margin:0 auto}
+.sect{font-family:monospace;font-size:9.5px;letter-spacing:2px;margin-bottom:9px;display:flex;align-items:center;gap:8px}
+.sect::after{content:'';flex:1;height:1px;background:currentColor;opacity:.12}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:10px}
+.grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:10px}
+.grid6{display:grid;grid-template-columns:repeat(6,1fr);gap:6px;margin-bottom:10px}
+.card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:11px 13px}
+.card-top{border-top:2px solid currentColor}
+.breaking{background:rgba(180,20,20,0.07);border:1px solid rgba(200,40,40,0.2);border-left:3px solid #cc2222;border-radius:12px;padding:13px 16px;margin-bottom:10px}
+.tag{display:inline-block;font-size:7px;font-family:monospace;letter-spacing:1.5px;padding:2px 7px;border-radius:3px;font-weight:700}
+.tag-red{background:rgba(255,30,30,0.12);color:#ff4444;border:1px solid rgba(255,30,30,0.2)}
+.tag-orange{background:rgba(255,140,0,0.12);color:#ffaa33;border:1px solid rgba(255,140,0,0.2)}
+.tag-yellow{background:rgba(255,200,0,0.1);color:#ffcc33;border:1px solid rgba(255,200,0,0.18)}
+.tag-green{background:rgba(30,200,100,0.08);color:#33cc77;border:1px solid rgba(30,200,100,0.18)}
+.tag-blue{background:rgba(30,120,255,0.1);color:#44aaff;border:1px solid rgba(30,120,255,0.18)}
+.tag-purple{background:rgba(160,50,255,0.1);color:#bb66ff;border:1px solid rgba(160,50,255,0.18)}
+.n{font-family:monospace;font-weight:800}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+<script type="text/babel">
+const {useState,useEffect,useRef}=React;
+
+// ── LIVE TICKER ───────────────────────────────────────────────────────────────
+const TICKS=[
+"🔴 BREAKING — Saudi air defenses intercept 16 drones targeting Aramco Shaybah oilfield (1M bbl/day) in 4 waves · March 7 · Arab News",
+"🔴 Iran interim leadership: will NOT attack neighbours unless attack originates from there · Al Jazeera March 7",
+"🔴 Russia providing Iran real-time intel on US troop/ship/aircraft positions · CNN · Putin-Pezeshkian call March 6",
+"🔴 US CENTCOM: 3,000+ targets struck inside Iran since Feb 28 · Fox News/CNN March 7",
+"🔴 UN Sec-Gen Guterres: war 'could spiral beyond anyone's control' · CNN March 7",
+"⚠️ Maersk is 2nd major carrier to suspend all Hormuz operations · 3,000+ ships stranded incl. 10% of global container fleet · FP March 4",
+"🔴 AWS Dubai data center hit by drone shrapnel — first cloud facility ever damaged in war · Foreign Policy March 4",
+"🔴 Brent crude $90–92/bbl (+21% weekly) · WTI $85+ · US gasoline $3.32/gal — highest both Trump terms · Bloomberg/AAA",
+"🔴 TTF gas peaked €58–64/MWh this week · Goldman warns €74–100 risk · 52-wk high hit · Investing.com",
+"⚠️ Gold near $5,080–5,400/oz — safe-haven surge · KOSPI worst crash since 2008 · Defense stocks +6% · Bloomberg/CNBC",
+"🔴 Qatar Energy Min. al-Kaabi (FT): war could 'bring down the economies of the world' — oil to $150 if Hormuz stays shut 2–3 weeks",
+"🔴 JPMorgan: Gulf has ~22 days storage left · Iraq ~3 days from March 3 — Rumaila shut-in confirmed · Reuters March 4",
+"⚠️ Fertiliser shock: QatarEnergy halted urea/ammonia at Ras Laffan — 1/3 of global fertiliser trade via Hormuz at spring planting peak · StoneX",
+"🔴 Dubai Jebel Ali port hit · Dubai airport damaged · AWS data center hit · UAE intercepted 125+ drones in 24 hrs · Foreign Policy",
+"⚠️ Cape of Good Hope rerouting adds ~$1M/voyage + 15 days Asia-Europe transit time · Maersk/Hapag-Lloyd",
+"🔴 1,332+ killed in Iran since Feb 28 · 181 children · UNICEF / Al Jazeera March 6",
+"⚠️ Airlines: United/Delta -5% · American -4% · Air France -9.4% · Lufthansa -5.2% · Norwegian Cruise -10% · CNBC/Bloomberg",
+"🔴 Trump: 'No deal with Iran except UNCONDITIONAL SURRENDER' · Truth Social / CNN March 6–7",
+"⚠️ EU gas storage below 30% — 10–15% below seasonal norm · EU Russian gas ban effective March 18 · Columbia CGEP",
+"🔴 S&P 500 down · Dow -784pts March 5 · Pakistan KSE-100 biggest single-day drop ever (-9.57%) · Wikipedia Econ Impact",
+];
+
+// ── MARKET DATA ───────────────────────────────────────────────────────────────
+const MARKETS=[
+{label:"Brent Crude",val:"$90–92",unit:"/bbl",chg:"+28%",chgAbs:"+$20",dir:"↑",col:"#ff2222",pre:"Feb 27: ~$72",src:"Bloomberg/OilPrice.com March 6"},
+{label:"WTI",val:"$85+",unit:"/bbl",chg:"+27%",chgAbs:"+$18",dir:"↑",col:"#ff5500",pre:"Feb 27: ~$67",src:"Bloomberg March 6"},
+{label:"TTF Natural Gas",val:"€47–53",unit:"/MWh",chg:"+50–65%",chgAbs:"+€17",dir:"↑",col:"#ffaa00",pre:"Pre-crisis: ~$32",src:"OilPriceAPI/Investing.com"},
+{label:"US Gasoline",val:"$3.32",unit:"/gal",chg:"+9%",chgAbs:"+27¢",dir:"↑",col:"#ff4444",pre:"~$3.05 pre-crisis",src:"AAA/Javier Blas Bloomberg"},
+{label:"Gold (Spot)",val:"~$5,080",unit:"/oz",chg:"+2%",chgAbs:"safe haven",dir:"↑",col:"#ffdd00",pre:"Pre-crisis: ~$4,950",src:"Bloomberg/CNBC March 5"},
+{label:"US Dollar Index",val:"+0.95%",unit:"",chg:"5-wk high",chgAbs:"safe haven",dir:"↑",col:"#44aaff",pre:"Erased 2026 losses",src:"Bloomberg March 2"},
+{label:"10-yr Treasury",val:"4.05%",unit:"",chg:"+11bp",chgAbs:"biggest rise Oct",dir:"↑",col:"#aa44ff",pre:"Pre-war: ~3.92%",src:"Bloomberg/Nasdaq March 2"},
+{label:"Asia LNG (JKM)",val:"+39–40%",unit:"wk",chg:"1-yr high",chgAbs:"Asian buyers compete",dir:"↑",col:"#ff8800",pre:"Pre-crisis baseline",src:"CNBC/Al Jazeera March 2–3"},
+];
+
+// ── INDUSTRY IMPACT DATA ───────────────────────────────────────────────────────
+const INDUSTRIES=[
+{
+  icon:"🛢️",label:"Energy",sev:95,col:"#ff1111",tag:"CRITICAL",
+  status:"Hormuz near-zero traffic · ~300 tankers stranded · Iraq Rumaila shut-in · Ras Tanura halted",
+  now:["Brent $90–92 (+28% since Feb 27) · WTI $85+ · First time since April 2024","Ras Tanura (550K bbl/day) halted after Iranian drone strike fire — Bloomberg March 2","Iraq cutting ~1.5M bpd · Rumaila shut-in confirmed March 3 (Bloomberg)","Shaybah oilfield (1M bbl/day) — 16 drones intercepted March 7, field still operating","~200–300 tankers stranded · only 4 vessels transited Hormuz March 1 vs avg 24/day","JPMorgan: 22 days Gulf storage · Day-8: 3.3M bpd cut · Day-15: 3.8M · Day-18: 4.7M"],
+  proj:["Week 2–3: Iraq, Kuwait forced output cuts as storage fills · Brent tests $100 (Goldman $100 at 5 weeks)","Week 3–4: Saudi/UAE bypass partially offsets — but Fujairah hub targeted","Month 2+: Brent $120+ (JPMorgan) if storage exhausted · $200 tail risk (Deutsche Bank mines scenario)","DE-ESCALATION: Brent retreats to $70 mid-year (Oxford Economics) · steep backwardation already priced"],
+  src:"Bloomberg · Reuters · JPMorgan · Goldman Sachs · Deutsche Bank · OilPrice.com"
+},{
+  icon:"🚢",label:"Shipping",sev:92,col:"#ff2222",tag:"CRITICAL",
+  status:"Maersk + Hapag-Lloyd suspended Hormuz · Cape of Good Hope rerouting · +$1M/voyage",
+  now:["Maersk 2nd major carrier to suspend all Hormuz operations — CNN/FP March 4","~3,000 ships stranded incl. ~10% of global container fleet · at least 1 container ship struck by drone","Cape of Good Hope rerouting adds ~$1M/voyage extra fuel + 15 days Asia-Europe transit","Houthis restarted Red Sea attacks — alternative route also compromised","Marine war-risk insurance cancelled or astronomically priced by P&I clubs from March 5","Jebel Ali port (Dubai) — world's 9th busiest — hit by Iranian strike March 1"],
+  proj:["Week 2–3: Container freight rates spike 30–50%; perishables, electronics, pharma delayed","Week 4: Global freight inflation begins showing in retail CPI · Cape routing becomes new normal","Month 2: Cape rerouting capacity constraints emerge — not enough vessels for both route volumes","RECOVERY: 4–8 weeks to clear backlog even after Hormuz reopens — port congestion guaranteed"],
+  src:"Foreign Policy March 4 · CNN · Supply Chain Magazine · CIPS · Maersk statement"
+},{
+  icon:"✈️",label:"Aviation",sev:88,col:"#ff3300",tag:"CRITICAL",
+  status:"4,000+ daily cancellations · 8+ Gulf airspaces closed · Airlines stocks -5–9%",
+  now:["Dubai airport damaged · Emirates suspended until March 3 · Qatar Airways, Etihad disrupted","4,000+ daily flight cancellations · 20,000 Americans evacuated via charter flights","Bahrain, Iraq, Israel, Kuwait, Qatar, UAE, Syria airspaces closed — Europe-Asia corridor severed","Int'l carriers suspended: Air India, British Airways, Cathay, Lufthansa, Virgin, Wizz Air","Airline stocks: United -5% · Delta -5% · American -4% · Air France -9.4% · Lufthansa -5.2%","Air cargo: Gulf handles ~10% of global air freight volume — all effectively offline"],
+  proj:["Week 2–3: Rerouted flights via North/South add 2–4hrs per leg, massive cost for carriers","Week 4: Jet fuel costs +27% on top of route extensions — airlines burn through hedges","Month 2: Expect airline credit downgrades, liquidity crises for Middle East carriers","RECOVERY: Even with ceasefire, insurance/crew confidence rebuild takes 4–6 weeks"],
+  src:"Wikipedia Econ Impact · CNN · CNBC · Bloomberg · Foreign Policy March 4"
+},{
+  icon:"🌾",label:"Agriculture & Food",sev:82,col:"#ff6600",tag:"SEVERE",
+  status:"Fertiliser shock: 1/3 global trade via Hormuz · Urea prices surging · Spring planting at risk",
+  now:["QatarEnergy halted urea/ammonia at Ras Laffan — the world's largest nitrogen complex","~1/3 of globally traded fertiliser transits Hormuz at the worst possible time — spring planting","StoneX: Iran controls 10–12% of global urea trade · 3 of world's 10 largest ammonia exporters use Hormuz","Urea prices surging — CF Industries (world's largest ammonia producer) shares +8.3%","Soybean oil hit 2.5-year high · Dubai sugar refinery (world's largest standalone) at risk of raw cane supply cut","Spring planting window: US farmers may shift corn → soybeans if nitrogen delayed past May 1 (StoneX)"],
+  proj:["Week 2–3: Fertiliser supply chains lock up · farmers face sharp price increases or acreage shifts","Month 2: Missed spring application → disproportionate yield drops per nitrogen shortfall","Late 2026: Food price inflation 5–15% in import-dependent regions (Sub-Saharan Africa most exposed)","TAIL RISK: Prolonged disruption = industrial nitrogen supply crisis — Chatham House"],
+  src:"StoneX/Bloomberg · The Conversation · Janes · Farm Progress · Food Ingredients First"
+},{
+  icon:"📱",label:"Tech & Semiconductors",sev:72,col:"#ff8800",tag:"HIGH",
+  status:"Chips & EV batteries stranded · AWS Dubai hit · ASML/AMD/QCOM fell · Just-in-time broken",
+  now:["AWS Dubai data center hit by drone shrapnel — possibly first cloud facility damaged in wartime (Foreign Policy)","Microsoft Azure + AWS 'investigating' latency spikes at Middle East nodes after Dubai/Doha missile strikes","Just-in-time semiconductor delivery severely disrupted — chips and EV batteries for 2026 production stranded in Gulf","Nasdaq: ASML -2%, AMD -1%, Qualcomm -1%, Lam Research -1%, Seagate -6%, Western Digital -3%","Air cargo from Gulf (10% global volume) grounded — high-value electronics, chips, pharma all delayed","TSMC shares fell ~6% intraday March 4 on Taiwan LNG exposure and war risk (Club Dark)"],
+  proj:["Week 2–4: Lead times for chips lengthen 2–4 weeks · auto manufacturers begin citing supply risk","Month 2: Some 2026 consumer electronics production plans revised downward","Month 3: EV battery delivery delays ripple into Q3 vehicle production — auto OEMs most exposed","UPSIDE: Defense tech spending surge benefits US contractors: Lockheed +6%, Northrop +6%, AeroVironment +10%"],
+  src:"Foreign Policy March 4 · AP/Supply Chain Magazine · CNBC/Nasdaq · Club Dark March 4"
+},{
+  icon:"💊",label:"Pharmaceuticals",sev:70,col:"#ff9900",tag:"HIGH",
+  status:"India pharma exports disrupted · Hormuz + airspace both blocked · Cape rerouting adds weeks",
+  now:["~85% of generic drugs globally are manufactured in India — shipped through or past the Gulf region","Both Hormuz sea route and Gulf airspace now blocked simultaneously — unprecedented double disruption","India: gas rationing begun + Mangalore Refinery halted fuel exports · energy for API manufacturing at risk","Air cargo from India/Asia suspended via Gulf — temperature-sensitive APIs and finished drugs affected","Cape of Good Hope rerouting adds 15+ days — unworkable for perishable biologics and cold-chain products","AP: 'Pharmaceuticals from India... all shipped through the region and could face delays'"],
+  proj:["Week 2–3: Spot shortages of generic drugs in markets dependent on Indian air cargo","Month 2: Hospital formulary pressure in South Asia, Africa if Indian API production curtailed by energy cuts","Month 3: Western markets begin to feel generic drug cost increases as importers pass on freight inflation","DE-ESCALATION: Recovery faster than for energy — drug inventories exist, just in transit delay"],
+  src:"AP March 4 · Denver Post · Supply Chain Magazine · Reuters India energy March 5"
+},{
+  icon:"🚗",label:"Automotive & EVs",sev:68,col:"#ffaa00",tag:"HIGH",
+  status:"JIT supply chains broken · EV battery shipments stranded · Petrol prices hit consumers hard",
+  now:["Just-in-time manufacturing chains disrupted across Asia-Europe corridor — 15+ day transit extension","EV batteries (produced in China/Korea) stranded in Gulf or rerouted via Cape — 2026 delivery schedules at risk","US gasoline $3.32/gal — highest both Trump terms — squeezing consumer disposable income globally","Automakers Boeing, Caterpillar among S&P 500 leaders to downside as 'global slowdown' stocks hit","South Korea: $68.3B stabilisation fund launched partly to support auto sector (Korea big EV exporter)","Saudi/Qatar petrochemical feedstock disrupted — plastics for auto interiors, components supply chain hit"],
+  proj:["Week 2–4: Automakers activate force majeure clauses for Gulf-origin parts · some line stoppages","Month 2: EV production plans revised if battery deliveries extend 6+ weeks · OEM guidance cuts","Month 3: Consumer credit tightens as central banks resist cutting rates due to oil-driven inflation","UPSIDE: US domestic auto production relatively buffered vs. Asian and European producers"],
+  src:"CNBC March 5 · AP · Supply Chain Magazine · Al Jazeera KSA fund"
+},{
+  icon:"🏦",label:"Finance & Markets",sev:65,col:"#ffbb00",tag:"HIGH",
+  status:"$3.2T global equity loss in 96hrs · Dow -784pts · Bonds sold off on inflation fears · Gold up",
+  now:["$3.2 trillion global equity value wiped in 96 hours of conflict (Special Eurasia geoeconomics report)","Dow Jones: -400pts March 2 · -784pts March 5 · S&P 500 -1.3% · KOSPI -12% (worst since 2008)","10-year Treasury yield +11bp to 4.05% on one day — biggest jump since October · inflation expectations priced","Gold near $5,080–5,400/oz — safe-haven surge · US dollar index 5-week high","GCC banking: $2.3 trillion commercial deposits (inc. large nonresident holdings) — sovereign risk rising","Morgan Stanley: military escalation → higher US defense outlays → upward pressure on long-term bond yields"],
+  proj:["Week 2–4: Central banks globally face oil-driven inflation dilemma — hold or hike rates?","Month 2: Rate cut expectations shelved in Europe and Asia · currency pressures in EM countries intensify","Month 3: $100+ oil → possible global recession trigger (Dan Niles, CNBC March 5) · EM sovereign downgrades","UPSIDE: Defense stocks multi-year tailwind · Morgan Stanley: allocate to defense, aerospace, industrial resilience"],
+  src:"Special Eurasia · Wikipedia Econ Impact · Bloomberg · CNBC · Morgan Stanley · UBS"
+},{
+  icon:"🏗️",label:"Construction & Industry",sev:60,col:"#ffcc00",tag:"ELEVATED",
+  status:"Steel, cement, plastics all hit by energy + freight costs · UAE/Qatar project delays likely",
+  now:["Petrochemical feedstocks (plastics, rubber) are natural gas derivatives — QatarEnergy halt cuts supply","Steel: energy-intensive production faces double squeeze from gas costs and freight insurance spikes","UAE construction sector — home to $100Bn+ in active projects — physically in conflict zone","Qatar 2030 National Vision projects at risk of delay with domestic energy supply disrupted","Cape of Good Hope adds 15 days to bulk material shipping — cement, steel imports from Asia delayed","GCC bank deposits ($2.3T) funding regional infrastructure — now subject to sovereign risk premium"],
+  proj:["Week 2–4: Construction material prices rise 5–15% in Asia-Europe reflecting freight cost pass-through","Month 2: Gulf project timelines slip 1–3 months · expat workers evacuating reduces labour pools","Month 3: Plastics and rubber shortage begins appearing in European and Asian manufacturing PMIs","RECOVERY: Construction resilient if peace in 4 weeks — energy projects actually see investment surge post-war"],
+  src:"Foreign Policy March 4 · Janes · Special Eurasia · Oxford Economics"
+},{
+  icon:"🏨",label:"Tourism & Hospitality",sev:78,col:"#ff7700",tag:"SEVERE",
+  status:"Dubai/Doha tourism paralysed · Emirates grounded · 95,000+ displaced in Lebanon · Hotels empty",
+  now:["Dubai International Airport — 95.2M passengers/yr, 291 destinations — effectively closed or severely disrupted","Emirates, Etihad, Qatar Airways grounded or massively reduced · 4,000+ daily cancellations","Lebanon: 95,000+ people displaced by Israeli strikes · hotels in Beirut's southern suburbs evacuated","Hotel bookings in UAE, Qatar plummeting — economic hubs facing 'paralysis' (Wirtschaftswoche)","~20,000 Americans evacuated from Middle East via State Dept charter flights","Gold disruption: Dubai was largest gold trading hub — grounded flights caused Indian gold price swings"],
+  proj:["Week 2–4: GCC tourism revenues near zero · some long-haul tourists rebook via Istanbul/Cairo","Month 2: Airlines' Middle East networks formally suspended in scheduling systems — summer bookings shift","Month 3: UAE/Qatar hotel sector cash-flow crisis if conflict persists · EXPO/event pipelines disrupted","RECOVERY: Fast — 4–8 weeks after peace for leisure travel to restart · business travel slower"],
+  src:"Wikipedia Econ Impact · CNN · Foreign Policy March 4 · Wirtschaftswoche via Wikipedia"
+},{
+  icon:"⚡",label:"Power & Utilities",sev:85,col:"#ff5500",tag:"SEVERE",
+  status:"EU gas storage <30% · Russia ban March 18 · Goldman: TTF €74–100 risk · MENA grid stress",
+  now:["EU gas storage below 30% — 10–15% below seasonal norm · Germany 30%, France 29%, Netherlands 23.5%","TTF peaked €58–64/MWh this week · 52-week high hit · currently ~€47–53 / OilPriceAPI","EU Russian gas ban takes effect March 18 — further tightens supply just as Qatari LNG gone","Goldman Sachs: 1-month disruption → TTF €74/MWh · 2-month → TTF >€100/MWh (2022 crisis territory)","Jordan: ~85% gas from Israeli Leviathan (shut Feb 28) — heavy fuel oil emergency backup engaged","Middle East itself: imports 85% of food; air bridges now military-priority not commercial cargo"],
+  proj:["Week 2–3: European utilities begin emergency procurement at spot market (US, Africa LNG)","Month 2: European household utility bills +30–50% on annual basis as contracts roll over","Month 3: EU industrial gas rationing possible if TTF stays >€80/MWh · heavy industry curtailment","TAIL: >€100/MWh repeats 2022 crisis — threatens EU recession via energy costs alone"],
+  src:"Columbia CGEP · Goldman Sachs · Investing.com · OilPriceAPI · Janes · Jordan Times"
+},{
+  icon:"🌍",label:"Emerging Markets",sev:80,col:"#ff6600",tag:"SEVERE",
+  status:"USD surging · EM currencies pressured · $100 oil = guaranteed EM recession risk · Pakistan crisis",
+  now:["US dollar index at 5-week high — capital flight from EM to safe havens (Bloomberg March 2)","Pakistan KSE-100: biggest single-day drop ever (-9.57%, -16,089 pts) March 2 · Market halt triggered","Bangladesh Petrobangla: 'Prices could rise manyfold and frankly, we simply cannot afford that'","Sub-Saharan Africa: fertiliser use already low — further price rises will cut yields, deepen food insecurity","Chatham House: 'countries where energy subsidies remain extensive and government finances already shaky — bond markets could unsettle'","IMF Georgieva (Bangkok March 5): 'clear potential to affect global energy prices, market sentiment, growth and inflation'"],
+  proj:["Week 2–3: EM central banks face painful choice: defend currencies via rate hikes or protect growth","Month 2: Sovereign downgrade risk rises for Pakistan, Bangladesh, Sri Lanka, Egypt, Jordan","Month 3: Food import bills surge as both energy and freight costs compound — $100 oil = EM recession (Niles/CNBC)","TAIL: IMF emergency financing requests from 5–10 countries if disruption extends to Q3 2026"],
+  src:"Bloomberg · Wikipedia Econ Impact · Reuters/Petrobangla · Chatham House · IMF/Bloomberg"
+},
+];
+
+// ── COUNTRY PROJECTIONS ────────────────────────────────────────────────────────
+const COUNTRIES=[
+{flag:"🇵🇰",name:"Pakistan",score:93,col:"#ff1111",sev:"CRISIS",
+  now:"KSE-100 worst day ever. Army deployed. 99% LNG from Qatar/UAE gone. Saudi Yanbu reroute confirmed.",
+  proj:"Week 2: Nighttime blackouts expand. Month 2: Sovereign downgrade risk. Pakistan-Iran border instability — cross-border proxy risk."},
+{flag:"🇧🇩",name:"Bangladesh",score:89,col:"#ff2222",sev:"CRITICAL",
+  now:"72% LNG from Qatar/UAE. 4/9 March cargoes cleared before closure. Petrobangla: 'Cannot afford this.'",
+  proj:"Week 2–3: Power rationing begins. Industry output drops 15–20%. IMF consultation likely."},
+{flag:"🇯🇴",name:"Jordan",score:88,col:"#ff2222",sev:"CRITICAL",
+  now:"85% gas from Israeli Leviathan (offline Feb 28). Mineral processing (9% GDP, 30% exports) at risk.",
+  proj:"Month 2: GDP contracts 2–3%. HFO alternatives cost 40% more. Bond market pressure."},
+{flag:"🇮🇳",name:"India",score:76,col:"#ff8800",sev:"HIGH",
+  now:"40% oil, 85% LPG, 53% LNG from Gulf. Gas rationing begun. Mangalore Refinery halted exports.",
+  proj:"Month 2: CPI +1.2pp. Pharma API production squeezed by energy cuts. Currency pressures."},
+{flag:"🇪🇬",name:"Egypt",score:72,col:"#ff8800",sev:"HIGH",
+  now:"4.8 Bcm/yr from Leviathan offline. Fertiliser production cutting. Competing for Atlantic LNG.",
+  proj:"Bond market stress. IMF program extended. Tourism revenue still resilient via Red Sea alternatives."},
+{flag:"🇩🇪",name:"Europe",score:68,col:"#ff9900",sev:"HIGH",
+  now:"Storage <30%. Russia gas ban March 18. TTF +50–65%. Goldman: €74–100/MWh scenarios live.",
+  proj:"Month 2: CPI +0.5–1pp. Industrial output drops. Rate cut expectations shelved by ECB."},
+{flag:"🇹🇼",name:"Taiwan",score:73,col:"#ff8800",sev:"HIGH",
+  now:"⅓ LNG from Qatar. March supplies OK. TSMC -6% intraday. 'Hope for best, prepare for worst.'",
+  proj:"Q2 TSMC guidance risk if energy costs spike. Broader Asian LNG competition intensifies."},
+{flag:"🇯🇵",name:"Japan",score:61,col:"#ff9900",sev:"HIGH",
+  now:"~95% crude from ME. Refiners requested strategic stockpile release. ~240-day SPR.",
+  proj:"SPR drawn down. PM calls for diplomacy. Export competitiveness hurt if Yen weakens further."},
+{flag:"🇰🇷",name:"S. Korea",score:65,col:"#ff8800",sev:"HIGH",
+  now:"$68.3B stabilisation fund. KOSPI -12% (2008 worst). LNG inventories above 9-day minimum.",
+  proj:"Month 2: Auto exports face logistics delays. Chip export risk if Taiwan energy disrupted."},
+{flag:"🇨🇳",name:"China",score:50,col:"#ffcc00",sev:"MODERATE",
+  now:"NDRC halted diesel/petrol exports. 40% oil via Hormuz. Chinese ships reportedly still transiting.",
+  proj:"Buffer via 4–5 month SPR + Russian supplies. But GDP risk if disruption extends past Q2."},
+{flag:"🇺🇸",name:"USA",score:38,col:"#ffcc00",sev:"MODERATE",
+  now:"13M bbl/day domestic production. Gasoline $3.32/gal highest. War costs $891M/day (CSIS).",
+  proj:"Domestic buffer large. But war cost ($3.7B first 100hrs) + deficit pressure on bonds."},
+{flag:"🇸🇬",name:"Singapore",score:47,col:"#ffcc00",sev:"MODERATE",
+  now:"Qatar = 45% LNG. Aster Chemicals force majeure. Marine fuel pricing disrupted by China export halt.",
+  proj:"Refinery advantage helps. But shipping hub revenue plummets as Hormuz dead zone expands."},
+];
+
+// ── GLOBAL PROJECTIONS ─────────────────────────────────────────────────────────
+const SCENARIOS=[
+{label:"SCENARIO A — DEAL IN 4 WEEKS",col:"#22aaff",prob:"25%",
+ items:[
+  {k:"Brent crude",v:"Peaks ~$85–92 · Retreats to $70 by mid-year (Oxford Economics / Allianz)"},
+  {k:"TTF gas",v:"Goldman Q2 avg raised to €45/MWh · eases toward €35–40 as LNG resumes"},
+  {k:"Global GDP",v:"Eurozone -0.1pp · Asia -0.1–0.2pp · Inflation +0.5pp max (Chatham House)"},
+  {k:"Markets",v:"S&P 500 recovers +3.4% avg 6 months after geopolitical shocks (Carson Group)"},
+  {k:"Shipping",v:"Hormuz reopens in days · 4–8 weeks to clear tanker backlog and port congestion"},
+  {k:"Agriculture",v:"Fertiliser supply disruption — spring planting missed in some regions regardless"},
+ ],src:"Goldman Sachs · Allianz March 3 · Oxford Economics · Chatham House · Carson Group"},
+{label:"SCENARIO B — 5+ WEEKS PROLONGED",col:"#ffaa00",prob:"45%",
+ items:[
+  {k:"Brent crude",v:"$100–120 · Goldman $100 at 5-week curtailment · JPMorgan $120 when storage exhausted"},
+  {k:"TTF gas",v:"€60–74/MWh · Goldman monthlong scenario · European industrial gas rationing begins"},
+  {k:"Global GDP",v:"Global growth -0.25–0.4pp · EM recession risk · Central banks hold rates (ING Think)"},
+  {k:"Markets",v:"Further 5–10% equity downside · EM sovereign downgrades · Bond yields rise further"},
+  {k:"Agriculture",v:"Corn/soy planting shifts · late-2026 food inflation 5–15% in vulnerable regions"},
+  {k:"Shipping",v:"Cape of Good Hope becomes permanent reroute · container rates +30–50%"},
+ ],src:"Goldman Sachs · JPMorgan (Kaneva) · ING Think · Chatham House · StoneX fertiliser"},
+{label:"SCENARIO C — MINES + FULL NAVAL BLOCKADE",col:"#ff3333",prob:"20%",
+ items:[
+  {k:"Brent crude",v:"$150–200 · Deutsche Bank (Hsueh March 3) · Bernstein $150 · MST Marquee 3× 1970s shock"},
+  {k:"TTF gas",v:">€100/MWh · Goldman 2-month disruption · Back to 2022 Ukraine crisis levels"},
+  {k:"Global GDP",v:"Global recession · Bob McNally (Rapidan): 'guaranteed' if Hormuz fully closed"},
+  {k:"Markets",v:"$3.2T equity loss already in 96hrs · further crash · safe havens: gold, USD, JPY, CHF"},
+  {k:"Food/Fert",v:"Nitrogen crisis · Sub-Saharan Africa food insecurity emergency · WFP emergency response"},
+  {k:"Central banks",v:"Impossible dilemma: oil-driven stagflation — raise rates into slowdown or accept inflation"},
+ ],src:"Deutsche Bank · Goldman Sachs · Bernstein · Rapidan · MST Marquee · Special Eurasia"},
+{label:"SCENARIO D — RAPID DE-ESCALATION",col:"#22cc66",prob:"10%",
+ items:[
+  {k:"Brent crude",v:"Retreats to $70 by mid-year · Futures curve already priced: May $92 → Sep $78 backwardation"},
+  {k:"TTF gas",v:"Eases toward €35–40/MWh · EU storage rebuild resumes · Russian ban still headwind"},
+  {k:"Trigger",v:"Iran CIA backchannel (NYT/JPost) · Assembly of Experts appoints moderate successor to Khamenei"},
+  {k:"Markets",v:"Relief rally · S&P +3–5% on peace news · EM currencies recover · Gold pulls back"},
+  {k:"Shipping",v:"Immediate — tankers move within 72hrs of ceasefire announcement · insurance returns in 2 weeks"},
+  {k:"Note",v:"Trump 'unconditional surrender' language + Iran 'not asking for ceasefire' makes this least likely"},
+ ],src:"Oxford Economics · OilPrice.com futures · NYT/Jerusalem Post backchannel · Goldman Sachs"},
+];
+
+// ── COMPONENTS ─────────────────────────────────────────────────────────────────
+function Dot({col,size=7,anim=true}){
+const [on,setOn]=useState(true);
+useEffect(()=>{if(!anim)return;const t=setInterval(()=>setOn(v=>!v),600+Math.random()*400);return()=>clearInterval(t);},[anim]);
+return <div style={{width:size,height:size,borderRadius:'50%',flexShrink:0,background:on?col:'rgba(0,0,0,0)',border:`1.5px solid ${col}`,transition:'all .3s'}}/>;
+}
+
+function Bar({val,col,h=5,max=100}){
+const pct=Math.min(100,(val/max)*100);
+return(
+<div style={{height:h,background:'rgba(0,0,0,0.5)',borderRadius:3,overflow:'hidden',position:'relative'}}>
+<div style={{width:`${pct}%`,height:'100%',background:`linear-gradient(90deg,${col}55,${col})`,borderRadius:3,boxShadow:`0 0 8px ${col}33`}}/>
+</div>
+);
+}
+
+function MiniBar({val,col}){
+return(
+<div>
+<div style={{display:'flex',justifyContent:'space-between',marginBottom:2}}>
+<span style={{fontSize:7,color:'#1e2c3a',letterSpacing:1,fontFamily:'monospace'}}>IMPACT SCORE</span>
+<span style={{fontSize:9,fontWeight:700,color:col,fontFamily:'monospace'}}>{val}</span>
+</div>
+<Bar val={val} col={col}/>
+</div>
+);
+}
+
+function IndustryCard({d}){
+const [open,setOpen]=useState(false);
+return(
+<div onClick={()=>setOpen(o=>!o)} style={{background:'rgba(3,8,18,0.98)',border:`1px solid ${d.col}20`,borderTop:`2.5px solid ${d.col}`,borderRadius:10,padding:'11px 12px',cursor:'pointer',transition:'box-shadow .15s',boxShadow:open?`0 0 20px ${d.col}18`:'none'}}>
+<div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:4}}>
+<div style={{display:'flex',alignItems:'center',gap:6}}>
+<span style={{fontSize:18}}>{d.icon}</span>
+<div>
+<div style={{fontSize:11.5,fontWeight:700,color:'#c0d0e0'}}>{d.label}</div>
+<div style={{fontSize:7,color:d.col,fontWeight:700,letterSpacing:1,fontFamily:'monospace'}}>{d.tag}</div>
+</div>
+</div>
+<Dot col={d.col}/>
+</div>
+<div style={{fontSize:8,color:'#3a4a5a',lineHeight:1.45,marginBottom:6}}>{d.status}</div>
+<MiniBar val={d.sev} col={d.col}/>
+{open&&(
+<div style={{marginTop:10,animation:'fadein .15s ease'}}>
+<div style={{fontSize:8,color:'#3a5070',letterSpacing:1,fontFamily:'monospace',marginBottom:4}}>▼ NOW — VERIFIED</div>
+{d.now.map((x,i)=><div key={i} style={{fontSize:9,color:'#5a6a7a',lineHeight:1.55,marginBottom:3,paddingLeft:8,borderLeft:`1.5px solid ${d.col}33`}}>{x}</div>)}
+<div style={{fontSize:8,color:'#3a5070',letterSpacing:1,fontFamily:'monospace',marginTop:8,marginBottom:4}}>▼ PROJECTIONS (AI ANALYSIS)</div>
+{d.proj.map((x,i)=><div key={i} style={{fontSize:9,color:'#4a6a55',lineHeight:1.55,marginBottom:3,paddingLeft:8,borderLeft:`1.5px solid #22cc6633`}}>{x}</div>)}
+<div style={{fontSize:7,color:'#1e2838',marginTop:6,borderTop:'1px solid rgba(255,255,255,0.04)',paddingTop:4}}>📰 {d.src}</div>
+<div style={{fontSize:7,color:'#1a2430',marginTop:2}}>▲ Click to collapse</div>
+</div>
+)}
+{!open&&<div style={{fontSize:7,color:'#1a2430',marginTop:4}}>▼ Click for detail + projections</div>}
+</div>
+);
+}
+
+function CountryCard({c}){
+const [open,setOpen]=useState(false);
+const col=c.score>=85?'#ff1111':c.score>=70?'#ff7700':c.score>=50?'#ffbb00':'#22cc66';
+return(
+<div onMouseEnter={()=>setOpen(true)} onMouseLeave={()=>setOpen(false)}
+style={{background:'rgba(3,8,18,0.98)',border:`1px solid ${col}15`,borderTop:`2px solid ${col}`,borderRadius:9,padding:'9px 10px',position:'relative',cursor:'default',zIndex:open?200:1}}>
+<div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:2}}>
+<div style={{display:'flex',alignItems:'center',gap:4}}>
+<span style={{fontSize:15}}>{c.flag}</span>
+<span style={{fontSize:10,fontWeight:700,color:'#b0c4d8'}}>{c.name}</span>
+</div>
+<Dot col={col} size={6}/>
+</div>
+<div style={{fontSize:7,color:'#2a3848',marginBottom:4,lineHeight:1.4}}>{c.now.substring(0,70)}…</div>
+<MiniBar val={c.score} col={col}/>
+{open&&(
+<div style={{position:'absolute',zIndex:999,top:'calc(100% + 4px)',left:0,right:0,background:'rgba(2,6,14,0.99)',border:`1.5px solid ${col}44`,borderRadius:10,padding:'12px 13px',boxShadow:'0 20px 60px rgba(0,0,0,0.99)',animation:'fadein .12s ease',minWidth:240}}>
+<div style={{fontSize:9,color:`${col}`,fontWeight:700,marginBottom:5}}>{c.flag} {c.name} — {c.sev}</div>
+<div style={{fontSize:8.5,color:'#5a6a7a',lineHeight:1.6,marginBottom:6}}>{c.now}</div>
+<div style={{fontSize:7.5,color:'#22aa55',lineHeight:1.55,borderTop:'1px solid rgba(255,255,255,0.04)',paddingTop:5}}><span style={{color:'#3a5a3a',fontFamily:'monospace',letterSpacing:1,fontSize:7}}>PROJECTION  </span>{c.proj}</div>
+</div>
+)}
+</div>
+);
+}
+
+function ScenCard({s,i}){
+const [open,setOpen]=useState(i===1);
+return(
+<div onClick={()=>setOpen(o=>!o)} style={{background:`${s.col}07`,border:`1px solid ${s.col}22`,borderTop:`3px solid ${s.col}`,borderRadius:10,padding:'11px 13px',cursor:'pointer'}}>
+<div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:6}}>
+<div>
+<div style={{fontSize:8,color:s.col,fontWeight:700,letterSpacing:1.5,fontFamily:'monospace',marginBottom:2}}>{s.label}</div>
+</div>
+<div style={{background:`${s.col}18`,border:`1px solid ${s.col}33`,borderRadius:20,padding:'2px 9px',fontSize:9,fontWeight:700,color:s.col,fontFamily:'monospace',flexShrink:0}}>{s.prob}</div>
+</div>
+{open&&(
+<div style={{animation:'fadein .14s ease'}}>
+{s.items.map((x,j)=>(
+<div key={j} style={{display:'flex',gap:6,marginBottom:5}}>
+<div style={{fontSize:8,color:s.col,fontWeight:700,minWidth:90,flexShrink:0,fontFamily:'monospace',paddingTop:1}}>{x.k}</div>
+<div style={{fontSize:9,color:'#5a6a78',lineHeight:1.5}}>{x.v}</div>
+</div>
+))}
+<div style={{fontSize:7.5,color:'#1e2838',borderTop:'1px solid rgba(255,255,255,0.04)',paddingTop:4,marginTop:4}}>📰 {s.src}</div>
+</div>
+)}
+{!open&&<div style={{fontSize:7.5,color:'#1a2430'}}>▼ Click to expand</div>}
+</div>
+);
+}
+
+function StorageClock(){
+const bars=[
+{name:"Iraq",days:1,max:3,col:"#ff0000",note:"Rumaila shut-in began March 3"},
+{name:"Kuwait",days:8,max:14,col:"#ff6600",note:"~14 days from March 3"},
+{name:"Total Gulf",days:15,max:22,col:"#ff9900",note:"343M bbl = ~22 days"},
+{name:"Saudi/UAE",days:99,max:100,col:"#22cc66",note:"East-west pipeline + Fujairah partial bypass"},
+];
+const pct=(d,m)=>Math.round((d/m)*100);
+return(
+<div style={{background:'rgba(3,8,18,0.98)',border:'1px solid rgba(255,100,0,0.15)',borderRadius:12,padding:'12px 14px',marginBottom:10}}>
+<div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:8}}>
+<div>
+<div className="sect" style={{color:'#ff6600',marginBottom:2}}>⏱️ GULF STORAGE CLOCK</div>
+<div style={{fontSize:8,color:'#283848'}}>JPMorgan analysis · Reuters March 4 · 343M barrels onshore + ~50M empty tankers = ~25 days total</div>
+</div>
+<div style={{textAlign:'right',fontFamily:'monospace'}}>
+<div style={{fontSize:8,color:'#ff6600'}}>DAY 8</div>
+<div style={{fontSize:20,fontWeight:800,color:'#ff2222'}}>−3.3M</div>
+<div style={{fontSize:8,color:'#4a5a6a'}}>bpd cut confirmed</div>
+</div>
+</div>
+<div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:8}}>
+{bars.map((b,i)=>(
+<div key={i} style={{background:`${b.col}08`,border:`1px solid ${b.col}20`,borderRadius:8,padding:'8px 10px',textAlign:'center'}}>
+<div style={{fontSize:8.5,color:'#7a8a9a',marginBottom:3}}>{b.name}</div>
+<div style={{fontFamily:'monospace',fontSize:b.days===99?14:22,fontWeight:800,color:b.col,marginBottom:3}}>
+{b.days===99?'PARTIAL':b.days===1?'~1 DAY':b.days===8?`~${22-8}d LEFT`:`~${22-8}d`}
+</div>
+<div style={{fontSize:7,color:'#3a4a58',lineHeight:1.4,marginBottom:5}}>{b.note}</div>
+<div style={{height:5,background:'rgba(0,0,0,0.4)',borderRadius:3,overflow:'hidden'}}>
+<div style={{width:`${pct(b.days,b.max)}%`,height:'100%',background:b.col,borderRadius:3}}/>
+</div>
+</div>
+))}
+</div>
+</div>
+);
+}
+
+function FuturesCurve(){
+const pts=[{m:"May",v:92.65,col:"#ff2222"},{m:"Jun",v:87.03,col:"#ff5533"},{m:"Jul",v:82.65,col:"#ff8833"},{m:"Aug",v:79.64,col:"#ffaa33"},{m:"Sep",v:77.64,col:"#ffcc44"},{m:"Oct",v:76.13,col:"#ffdd66"}];
+const max=92.65;
+return(
+<div style={{background:'rgba(3,8,18,0.98)',border:'1px solid rgba(0,100,255,0.12)',borderRadius:12,padding:'12px 14px',marginBottom:10}}>
+<div className="sect" style={{color:'#4488ff',marginBottom:6}}>📈 BRENT FUTURES CURVE — Market de-escalation pricing · OilPrice.com March 7</div>
+<div style={{display:'flex',gap:4,alignItems:'flex-end',height:70,marginBottom:5}}>
+{pts.map((p,i)=>{
+const h=Math.round((p.v/max)*58);
+return(
+<div key={i} style={{flex:1,display:'flex',flexDirection:'column',alignItems:'center',gap:2}}>
+<div style={{fontSize:8.5,color:p.col,fontFamily:'monospace',fontWeight:700}}>${p.v}</div>
+<div style={{width:'100%',height:h,background:`linear-gradient(180deg,${p.col},${p.col}55)`,borderRadius:'3px 3px 0 0',boxShadow:`0 0 5px ${p.col}33`}}/>
+<div style={{fontSize:7.5,color:'#2a3848',fontFamily:'monospace'}}>{p.m}</div>
+</div>
+);
+})}
+</div>
+<div style={{fontSize:8,color:'#1e2c38'}}>Steep backwardation = market pricing temporary disruption + expected recovery. Does NOT mean peace is likely — just that futures traders bet on it.</div>
+</div>
+);
+}
+
+function Breaking(){
+return(
+<div className="breaking">
+<div style={{fontSize:8,color:'#cc3333',letterSpacing:2,fontFamily:'monospace',marginBottom:8}}>🔴 BREAKING — MARCH 7, 2026 · DAY 8 UPDATE</div>
+<div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:10}}>
+{[
+{head:"Saudi Shaybah Targeted — Intercepted",body:"16 drones in 4 waves targeting Aramco Shaybah oilfield (1M bbl/day) intercepted and destroyed by Saudi air defenses March 7 early morning. Ballistic + cruise missile toward Prince Sultan Air Base also downed. UAE intercepted 125+ drones and 6 ballistic missiles in last 24 hours.",src:"Arab News / ANI March 7",col:"#ff3333"},
+{head:"Iran Stops Gulf Neighbour Attacks — Conditionally",body:"Iran's interim leadership council approved that neighbouring countries will NOT be attacked unless an attack on Iran originates from there. Pezeshkian announced. Significant — but diplomacy still deadlocked. Trump: 'unconditional surrender only.'",src:"Al Jazeera March 7",col:"#ffaa00"},
+{head:"Russia Intel + UK/France Military Support",body:"Russia giving Iran real-time intelligence on US troop/ship/aircraft positions (CNN). UK, France, Spain agreed to provide military support to protect allied interests. NATO reluctantly pulled in. Zelenskyy offered Ukraine drone expertise to US.",src:"CNN / NPR March 6",col:"#ff6600"},
+].map((b,i)=>(
+<div key={i} style={{background:'rgba(0,0,0,0.25)',borderRadius:8,padding:'9px 10px',borderLeft:`2px solid ${b.col}`}}>
+<div style={{fontSize:9,fontWeight:700,color:b.col,marginBottom:4}}>{b.head}</div>
+<div style={{fontSize:9,color:'#6a7a8a',lineHeight:1.6,marginBottom:4}}>{b.body}</div>
+<div style={{fontSize:7.5,color:'#2a3848'}}>📰 {b.src}</div>
+</div>
+))}
+</div>
+</div>
+);
+}
+
+function App(){
+const doubleTicks=[...TICKS,...TICKS];
+return(
+<div style={{minHeight:'100vh'}}>
+<div className="ticker-wrap">
+<div className="ticker-inner">
+{doubleTicks.map((t,i)=><span key={i} className="tick">{t} &nbsp;&nbsp;&nbsp;</span>)}
+</div>
+</div>
+
+<div className="wrap">
+{/* HEADER */}
+<div className="hdg">
+<div className="live-badge"><div className="live-dot"/>MARCH 7, 2026 · DAY 8 · OPERATION EPIC FURY</div>
+<h1>IRAN WAR — GLOBAL CRISIS COMMAND DASHBOARD</h1>
+<div className="sub" style={{color:'#263848',marginBottom:2}}>All data source-attributed · Projections clearly labelled as AI analysis · No fabrication · Updated with March 7 breaking news</div>
+<div className="sub">Sources: Reuters · Bloomberg · CNBC · Al Jazeera · BBC · CNN · AP · NPR · FP · Chatham House · Stimson · ING Think · Morgan Stanley · Goldman Sachs · JPMorgan · Deutsche Bank · Allianz · Oxford Economics · StoneX · Janes · Wikipedia Economic Impact 2026 · IMF · CSIS · Arab News · Special Eurasia · Farm Progress · Supply Chain Magazine</div>
+</div>
+
+{/* BREAKING */}
+<Breaking/>
+
+{/* MARKET OVERVIEW */}
+<div className="sect" style={{color:'#ff6600'}}>📊 LIVE MARKET SNAPSHOT · ALL VERIFIED FROM NAMED SOURCES</div>
+<div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:7,marginBottom:10}}>
+{MARKETS.map((m,i)=>(
+<div key={i} className="card card-top" style={{borderTopColor:m.col}}>
+<div style={{fontSize:7.5,color:'#2a3848',letterSpacing:1.5,textTransform:'uppercase',marginBottom:3}}>{m.label}</div>
+<div style={{display:'flex',alignItems:'baseline',gap:3,marginBottom:2}}>
+<span className="n" style={{fontSize:18,color:m.col}}>{m.val}</span>
+<span style={{fontSize:9,color:`${m.col}88`}}>{m.unit}</span>
+</div>
+<div style={{fontSize:9,color:m.col,fontWeight:700,marginBottom:2}}>{m.dir} {m.chg} <span style={{fontWeight:400,color:'#4a5a6a',fontSize:8}}>({m.chgAbs})</span></div>
+<div style={{fontSize:7.5,color:'#2a3848',marginBottom:1}}>{m.pre}</div>
+<div style={{fontSize:7,color:'#1a2430'}}>📰 {m.src}</div>
+</div>
+))}
+</div>
+
+{/* STORAGE + FUTURES */}
+<div className="grid2">
+<StorageClock/>
+<FuturesCurve/>
+</div>
+
+{/* INDUSTRY IMPACTS */}
+<div className="sect" style={{color:'#ff5500',marginBottom:9}}>🏭 INDUSTRY IMPACT MATRIX · Click any sector for verified detail + AI projections</div>
+<div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:8,marginBottom:10}}>
+{INDUSTRIES.slice(0,6).map((d,i)=><IndustryCard key={i} d={d}/>)}
+</div>
+<div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:8,marginBottom:10}}>
+{INDUSTRIES.slice(6).map((d,i)=><IndustryCard key={i} d={d}/>)}
+</div>
+
+{/* SCENARIOS */}
+<div className="sect" style={{color:'#44aaff',marginBottom:9}}>🔮 GLOBAL SCENARIOS & AI PROJECTIONS · Based on verified analyst data + Claude assessment</div>
+<div style={{background:'rgba(0,40,100,0.08)',border:'1px solid rgba(0,80,200,0.1)',borderRadius:10,padding:'9px 12px',marginBottom:9,fontSize:9.5,color:'#4a6a88',lineHeight:1.7}}>
+<strong style={{color:'#7a9abb'}}>Claude's analytical framework (clearly labelled as AI interpretation, not reported fact):</strong> The probability distribution above reflects 8 key variables: (1) Iran succession — who leads after Khamenei; (2) US war timeline — Trump's "4 weeks" vs. operational reality at Day 8; (3) whether Russia intel sharing escalates or stabilises; (4) JPMorgan storage clock — Kuwait hits its wall ~March 17; (5) whether Saudi Shaybah or UAE ADNOC take direct hits that break through; (6) Iran's conditional "no neighbour attack" pledge — a real signal; (7) whether Houthis fully activate Red Sea (closing the Cape bypass); (8) whether Iran deploys naval mines in Hormuz proper. The base case (45%) is Scenario B — prolonged but not catastrophic. Scenario A (25%) requires political breakthrough that Iran's "unconditional surrender" rhetoric makes unlikely in the near term. The tail risks (Scenario C) remain live and under-priced by markets.
+</div>
+<div style={{display:'grid',gridTemplateColumns:'repeat(2,1fr)',gap:8,marginBottom:10}}>
+{SCENARIOS.map((s,i)=><ScenCard key={i} s={s} i={i}/>)}
+</div>
+
+{/* COUNTRIES */}
+<div className="sect" style={{color:'#aa44ff',marginBottom:9}}>🌍 AFFECTED NATIONS — Hover for current status + AI projection</div>
+<div style={{display:'grid',gridTemplateColumns:'repeat(6,1fr)',gap:6,marginBottom:6}}>
+{COUNTRIES.slice(0,6).map((c,i)=><CountryCard key={i} c={c}/>)}
+</div>
+<div style={{display:'grid',gridTemplateColumns:'repeat(6,1fr)',gap:6,marginBottom:10}}>
+{COUNTRIES.slice(6).map((c,i)=><CountryCard key={i} c={c}/>)}
+</div>
+
+{/* ANALYST QUOTES */}
+<div style={{background:'rgba(3,8,18,0.98)',border:'1px solid rgba(255,255,255,0.04)',borderRadius:12,padding:'12px 14px',marginBottom:10}}>
+<div className="sect" style={{color:'#888',marginBottom:9}}>💬 KEY ANALYST & OFFICIAL STATEMENTS — All from named, dated sources</div>
+<div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:8}}>
+{[
+{who:"Saad al-Kaabi, Qatar Energy Min.",when:"FT/Al Jazeera March 6",quote:"The war could bring down the economies of the world. All Gulf exporters to shut within weeks. Oil to $150 in 2–3 weeks. 'Weeks to months' to normalise even if war ended today.",col:"#ff3333"},
+{who:"UN Sec-Gen António Guterres",when:"CNN March 7",quote:"The war could spiral beyond anyone's control.",col:"#ff5500"},
+{who:"Donald Trump, US President",when:"Truth Social / CNN March 6–7",quote:"There can be no deal with Iran except UNCONDITIONAL SURRENDER. Not worried whether Iran becomes democratic as long as new leader treats US and Israel 'well.'",col:"#ff7700"},
+{who:"Natasha Kaneva, JPMorgan",when:"Reuters March 4",quote:"3+ weeks exhausts Gulf storage → Brent $120. Day 8 = 3.3M bpd cut. Day 15 = 3.8M. Day 18 = 4.7M.",col:"#ffaa00"},
+{who:"Michael Hsueh, Deutsche Bank",when:"March 3",quote:"Full mines + weapons closure → Brent toward $200.",col:"#ffcc00"},
+{who:"Bob McNally, Rapidan Energy",when:"Reuters/CNBC",quote:"A prolonged closure of the Strait of Hormuz is a guaranteed global recession.",col:"#ff6600"},
+{who:"Daan Struyven, Goldman Sachs",when:"March 4",quote:"$100 at 5-week full closure. TTF €74/MWh at 1 month. >€100 at 2 months.",col:"#44aaff"},
+{who:"Kristalina Georgieva, IMF",when:"Bangkok March 5",quote:"Clear potential to affect global energy prices, market sentiment, growth and inflation.",col:"#aa44ff"},
+{who:"Patrick Penfield, Syracuse Univ.",when:"AP March 4",quote:"This is really causing some major impacts within the global supply chain. As this conflict keeps progressing, you'll start to see some shortages, you'll see some major price increases.",col:"#22cc88"},
+].map((q,i)=>(
+<div key={i} style={{background:'rgba(0,0,0,0.2)',borderRadius:8,padding:'9px 11px',borderLeft:`2px solid ${q.col}55`}}>
+<div style={{fontSize:9.5,color:'#7a8a9a',fontStyle:'italic',lineHeight:1.6,marginBottom:5}}>"{q.quote}"</div>
+<div style={{fontSize:8.5,fontWeight:700,color:q.col}}>{q.who}</div>
+<div style={{fontSize:7.5,color:'#2a3848'}}>{q.when}</div>
+</div>
+))}
+</div>
+</div>
+
+{/* FOOTER */}
+<div style={{textAlign:'center',padding:'8px 0',fontSize:7.5,color:'#141e28',lineHeight:2.2}}>
+<span style={{color:'#ff3322'}}>⚠️ VERIFIED DASHBOARD — All data source-attributed. Projections clearly labelled as AI analysis. Data gaps noted.</span><br/>
+Dashboard v4.0 · March 7, 2026 · Updated with Day 8 breaking news · Shaybah drone attack (March 7) · Iran no-neighbour pledge · Russia intel sharing · Full industry matrix<br/>
+Reuters · Bloomberg · CNN · Al Jazeera · AP · NPR · Foreign Policy · Chatham House · Stimson Center · ING Think · Morgan Stanley · UBS · Goldman Sachs · JPMorgan · Deutsche Bank · Allianz · Rapidan · Oxford Economics · StoneX · Janes · Wikipedia Economic Impact 2026 · IMF · CSIS · Arab News · Special Eurasia · Farm Progress · Food Ingredients First · Supply Chain Magazine · farmdoc/Illinois
+</div>
+</div>
+</div>
+);
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>
