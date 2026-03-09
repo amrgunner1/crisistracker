@@ -1,0 +1,699 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Iran War — Global Economic Crisis Dashboard v6</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{background:#0a0a0f;color:#e8e8f0;font-family:'Segoe UI',sans-serif;font-size:14px}
+  a{color:#60a5fa}
+
+  /* TICKER */
+  .ticker-wrap{position:sticky;top:0;z-index:1000;background:#1a0000;border-bottom:2px solid #dc2626;overflow:hidden;height:32px;display:flex;align-items:center}
+  .ticker-label{background:#dc2626;color:#fff;font-weight:700;font-size:12px;padding:0 12px;height:100%;display:flex;align-items:center;white-space:nowrap;flex-shrink:0}
+  .ticker-track{display:flex;animation:scroll 90s linear infinite;white-space:nowrap}
+  .ticker-track:hover{animation-play-state:paused}
+  .ticker-item{color:#fca5a5;font-size:12px;padding:0 40px}
+  .ticker-item span{color:#f97316;font-weight:700}
+  @keyframes scroll{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
+
+  /* HEADER */
+  .header{background:linear-gradient(135deg,#0f0f1a,#1a0505);padding:16px 20px;border-bottom:1px solid #333}
+  .header-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+  .header-title{font-size:22px;font-weight:800;color:#f87171}
+  .header-subtitle{font-size:13px;color:#9ca3af;margin-top:2px}
+  .header-clock{text-align:right;color:#60a5fa;font-size:13px}
+  .day-badge{background:#dc2626;color:#fff;font-size:11px;font-weight:700;padding:3px 10px;border-radius:12px;display:inline-block;margin-top:4px}
+  .price-strip{display:flex;gap:12px;flex-wrap:wrap}
+  .price-card{background:#111827;border:1px solid #1f2937;border-radius:8px;padding:8px 14px;flex:1;min-width:130px}
+  .price-label{font-size:10px;color:#6b7280;text-transform:uppercase;letter-spacing:.5px}
+  .price-value{font-size:18px;font-weight:700;color:#fff;margin:2px 0}
+  .price-change{font-size:11px}
+  .up{color:#34d399}.down{color:#f87171}.neutral{color:#9ca3af}
+
+  /* SECTIONS */
+  .section{padding:16px 20px}
+  .section-title{font-size:15px;font-weight:700;color:#f87171;text-transform:uppercase;letter-spacing:1px;margin-bottom:12px;display:flex;align-items:center;gap:8px}
+  .section-title::after{content:'';flex:1;height:1px;background:#1f2937}
+
+  /* NEWS */
+  .news-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+  .news-col{display:flex;flex-direction:column;gap:8px}
+  .news-col h4{font-size:11px;font-weight:700;color:#f59e0b;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;padding-bottom:4px;border-bottom:1px solid #292929}
+  .news-item{background:#111827;border:1px solid #1f2937;border-radius:6px;padding:8px 10px}
+  .news-item .headline{font-size:12px;font-weight:600;color:#e5e7eb;line-height:1.4}
+  .news-item .detail{font-size:11px;color:#9ca3af;margin-top:4px;line-height:1.4}
+  .news-item .source{font-size:10px;color:#4b5563;margin-top:4px}
+  .badge{display:inline-block;font-size:9px;font-weight:700;padding:2px 6px;border-radius:3px;margin-right:4px;text-transform:uppercase}
+  .badge-red{background:#7f1d1d;color:#fca5a5}
+  .badge-orange{background:#7c2d12;color:#fdba74}
+  .badge-blue{background:#1e3a5f;color:#93c5fd}
+
+  /* MARKET CARDS */
+  .market-row{display:flex;gap:10px;overflow-x:auto;padding-bottom:4px}
+  .mcard{background:#111827;border:1px solid #1f2937;border-radius:8px;padding:10px 14px;min-width:140px;flex-shrink:0}
+  .mcard-label{font-size:10px;color:#6b7280;text-transform:uppercase;margin-bottom:4px}
+  .mcard-value{font-size:17px;font-weight:700;color:#fff}
+  .mcard-sub{font-size:11px;margin-top:2px}
+
+  /* COUNTRY CARDS */
+  .country-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:8px}
+  .ccard{background:#111827;border:1px solid #1f2937;border-radius:8px;padding:10px;cursor:pointer;position:relative;transition:border-color .2s}
+  .ccard:hover{border-color:#f59e0b;z-index:5}
+  .ccard-name{font-size:12px;font-weight:700;color:#e5e7eb}
+  .ccard-score{font-size:22px;font-weight:800;margin:4px 0}
+  .ccard-status{font-size:10px;color:#9ca3af}
+  .ccard-tooltip{display:none;position:absolute;top:100%;left:0;z-index:100;background:#1f2937;border:1px solid #374151;border-radius:8px;padding:12px;width:260px;font-size:11px;color:#d1d5db;line-height:1.5}
+  .ccard:hover .ccard-tooltip{display:block}
+
+  /* MAP */
+  #crisis-map{height:480px;border-radius:10px;border:1px solid #1f2937}
+
+  /* CHARTS ROW */
+  .charts-row{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  .chart-box{background:#111827;border:1px solid #1f2937;border-radius:10px;padding:16px}
+  .chart-box h4{font-size:12px;font-weight:700;color:#f59e0b;margin-bottom:10px}
+  .clock-item{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+  .clock-bar-wrap{flex:1;background:#1f2937;border-radius:4px;height:14px;overflow:hidden}
+  .clock-bar{height:100%;border-radius:4px}
+  .clock-label{font-size:11px;color:#9ca3af;width:80px}
+  .clock-pct{font-size:11px;color:#e5e7eb;width:60px;text-align:right}
+  .futures-row{display:flex;justify-content:space-between;align-items:flex-end;gap:4px}
+  .futures-bar-wrap{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px}
+  .futures-bar{width:100%;border-radius:4px 4px 0 0}
+  .futures-label{font-size:9px;color:#9ca3af;text-align:center}
+  .futures-val{font-size:10px;color:#e5e7eb;text-align:center;font-weight:700}
+
+  /* INDUSTRY CARDS */
+  .industry-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+  .icard{background:#111827;border:1px solid #1f2937;border-radius:8px;padding:12px;cursor:pointer;transition:all .2s}
+  .icard:hover{border-color:#60a5fa}
+  .icard.expanded{border-color:#f59e0b;background:#141e2e}
+  .icard-top{display:flex;justify-content:space-between;align-items:flex-start}
+  .icard-name{font-size:12px;font-weight:700;color:#e5e7eb}
+  .icard-score{font-size:24px;font-weight:800}
+  .icard-bar-wrap{background:#0f172a;border-radius:4px;height:6px;margin:8px 0;overflow:hidden}
+  .icard-bar{height:100%;border-radius:4px;transition:width .5s}
+  .icard-detail{font-size:11px;color:#9ca3af;line-height:1.5;margin-top:4px;display:none}
+  .icard.expanded .icard-detail{display:block}
+  .icard-status{font-size:10px;color:#6b7280;margin-top:4px}
+
+  /* PROJECTIONS */
+  .proj-section{background:#0f1629;border:1px solid #1e3a5f;border-radius:10px;padding:20px;margin:16px 20px}
+  .proj-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:gap}
+  .proj-title{font-size:15px;font-weight:700;color:#60a5fa}
+  .proj-subtitle{font-size:11px;color:#6b7280;margin-top:2px}
+  .proj-buttons{display:flex;gap:8px;flex-wrap:wrap}
+  .proj-btn{background:#1f2937;border:1px solid #374151;color:#9ca3af;font-size:12px;font-weight:700;padding:6px 16px;border-radius:6px;cursor:pointer;transition:all .2s}
+  .proj-btn:hover{border-color:#60a5fa;color:#60a5fa}
+  .proj-btn.active{background:#1e3a5f;border-color:#3b82f6;color:#93c5fd}
+  .proj-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+  .pcard{background:#111827;border:1px solid #1f2937;border-radius:8px;padding:12px}
+  .pcard-sector{font-size:10px;color:#6b7280;text-transform:uppercase;letter-spacing:.5px}
+  .pcard-score{font-size:26px;font-weight:800;margin:4px 0}
+  .pcard-trend{font-size:11px;margin-bottom:6px}
+  .pcard-text{font-size:11px;color:#9ca3af;line-height:1.5}
+  .trend-up{color:#f87171}.trend-neutral{color:#fbbf24}.trend-down{color:#34d399}
+
+  /* SCENARIOS */
+  .scenario-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+  .sccard{background:#111827;border:1px solid #1f2937;border-radius:8px;padding:14px}
+  .sccard-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+  .sccard-label{font-size:11px;font-weight:700;color:#f59e0b}
+  .sccard-prob{font-size:18px;font-weight:800;color:#fff}
+  .sccard-title{font-size:12px;font-weight:600;color:#e5e7eb;margin-bottom:6px}
+  .sccard-text{font-size:11px;color:#9ca3af;line-height:1.5}
+  .sccard-oil{font-size:13px;font-weight:700;margin-top:8px}
+
+  /* ASSESSMENT */
+  .assessment{background:#0f1629;border:1px solid #1e3a5f;border-radius:10px;padding:20px;margin:0 20px 16px}
+  .assessment h3{font-size:14px;font-weight:700;color:#60a5fa;margin-bottom:12px}
+  .assessment-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  .assess-block h4{font-size:11px;font-weight:700;color:#f59e0b;margin-bottom:6px}
+  .assess-block p,.assess-block li{font-size:12px;color:#d1d5db;line-height:1.6}
+  .assess-block ul{padding-left:14px}
+  .signal{display:flex;align-items:flex-start;gap:8px;margin-bottom:6px}
+  .signal-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:4px}
+  .sig-red{background:#dc2626}.sig-yellow{background:#f59e0b}.sig-green{background:#22c55e}.sig-blue{background:#3b82f6}
+
+  /* FOOTER */
+  .footer{background:#070710;border-top:1px solid #1f2937;padding:16px 20px;font-size:10px;color:#4b5563}
+</style>
+</head>
+<body>
+
+<!-- TICKER -->
+<div class="ticker-wrap">
+  <div class="ticker-label">⚡ LIVE</div>
+  <div class="ticker-track" id="ticker"></div>
+</div>
+
+<!-- HEADER -->
+<div class="header">
+  <div class="header-top">
+    <div>
+      <div class="header-title">🔴 IRAN WAR — GLOBAL ECONOMIC CRISIS DASHBOARD</div>
+      <div class="header-subtitle">Operation Epic Fury · Day 9 · March 9, 2026 · Real-time economic & military intelligence</div>
+    </div>
+    <div class="header-clock">
+      <div id="live-clock" style="font-size:16px;font-weight:700"></div>
+      <div style="color:#6b7280;font-size:11px">UTC · Auto-updating</div>
+      <div class="day-badge">DAY 9 OF CONFLICT</div>
+    </div>
+  </div>
+  <div class="price-strip">
+    <div class="price-card">
+      <div class="price-label">WTI Crude</div>
+      <div class="price-value">$90.90</div>
+      <div class="price-change up">▲ +35% week (largest since 1983)</div>
+    </div>
+    <div class="price-card">
+      <div class="price-label">TTF Gas (Europe)</div>
+      <div class="price-value">€53/MWh</div>
+      <div class="price-change up">▲ Peaked €60+ · Rising</div>
+    </div>
+    <div class="price-card">
+      <div class="price-label">Gold</div>
+      <div class="price-value">$5,158/oz</div>
+      <div class="price-change up">▲ ATH $5,595 hit · Safe-haven bid</div>
+    </div>
+    <div class="price-card">
+      <div class="price-label">S&amp;P 500</div>
+      <div class="price-value">6,740</div>
+      <div class="price-change down">▼ −2.0% week · Negative YTD</div>
+    </div>
+    <div class="price-card">
+      <div class="price-label">VIX Fear Index</div>
+      <div class="price-value">29.26</div>
+      <div class="price-change down">▲ +23.2% · Elevated fear</div>
+    </div>
+    <div class="price-card">
+      <div class="price-label">VLCC Tanker Rate</div>
+      <div class="price-value">$423K/day</div>
+      <div class="price-change up">▲ All-time record high</div>
+    </div>
+    <div class="price-card">
+      <div class="price-label">Urea (Fertilizer)</div>
+      <div class="price-value">$545/ton</div>
+      <div class="price-change up">▲ +$60–80 in days</div>
+    </div>
+    <div class="price-card">
+      <div class="price-label">US Gasoline</div>
+      <div class="price-value">$3.25/gal</div>
+      <div class="price-change down">▲ +27¢ in one week</div>
+    </div>
+  </div>
+</div>
+
+<!-- BREAKING NEWS -->
+<div class="section">
+  <div class="section-title">📰 Breaking Intelligence — Day 9 (March 9, 2026)</div>
+  <div class="news-grid">
+    <div class="news-col">
+      <h4>⚔️ Military</h4>
+      <div class="news-item">
+        <div class="headline"><span class="badge badge-red">NEW</span>Iran's oil facilities struck for first time</div>
+        <div class="detail">Israel hit 4 oil storage depots in Tehran + Alborz (Aghdasieh, Shahran, Tehran refinery, Karaj). Oil leaked into streets; 4 tanker drivers killed. Dark smoke blanketed Tehran on Sunday.</div>
+        <div class="source">Al Jazeera · Mar 8</div>
+      </div>
+      <div class="news-item">
+        <div class="headline"><span class="badge badge-red">NEW</span>Mojtaba Khamenei named new Supreme Leader</div>
+        <div class="detail">Iran's Assembly of Experts selected Mojtaba Khamenei — son of slain Ali Khamenei — as the Islamic Republic's third supreme leader. IDF warns he is now a target.</div>
+        <div class="source">NBC News / CNN · Mar 9</div>
+      </div>
+      <div class="news-item">
+        <div class="headline">7th US service member killed in combat</div>
+        <div class="detail">CENTCOM confirmed the death of another US service member from injuries sustained in Iran's initial attacks. Total US KIA: 7. Iran missile rate down −90% from Day 1.</div>
+        <div class="source">NBC News / CENTCOM · Mar 9</div>
+      </div>
+      <div class="news-item">
+        <div class="headline">UK joins coalition — B-1 Lancer at RAF Fairford</div>
+        <div class="detail">PM Starmer granted US permission for "defensive action" against Iranian missile sites. A 146ft B-1 Lancer strategic bomber arrived at RAF Fairford, UK.</div>
+        <div class="source">NPR / Al Jazeera · Mar 7</div>
+      </div>
+      <div class="news-item">
+        <div class="headline">Special forces may seize Iran's HEU stockpile</div>
+        <div class="detail">Axios reported US-Israel discussions on deploying special forces to seize Iran's highly enriched uranium at a "later stage" of the war.</div>
+        <div class="source">Axios · Mar 8</div>
+      </div>
+    </div>
+    <div class="news-col">
+      <h4>🛢️ Energy &amp; Shipping</h4>
+      <div class="news-item">
+        <div class="headline"><span class="badge badge-orange">CRITICAL</span>Strait of Hormuz: ZERO tanker transits</div>
+        <div class="detail">Commercial shipping at a standstill. Zero tankers transited on March 6 (avg was 24/day). ~200–300 tankers stranded; ~3,200 ships trapped in the Gulf. IRGC declared it closed on March 2.</div>
+        <div class="source">CNBC / Maritime Executive</div>
+      </div>
+      <div class="news-item">
+        <div class="headline">QatarEnergy force majeure — LNG/urea/ammonia halted</div>
+        <div class="detail">Ras Laffan and Mesaieed both struck. QatarEnergy declared force majeure March 4, halting world's largest urea plant and all LNG production. Global fertilizer shock accelerating.</div>
+        <div class="source">Reuters · Mar 4–5</div>
+      </div>
+      <div class="news-item">
+        <div class="headline">Iraq Rumaila field + Kuwait refinery hit</div>
+        <div class="detail">Rumaila oilfield and Baker Hughes Energy City struck March 6. Iraq cutting ~1.5M bpd. Kuwait's Mina Al-Ahmadi struck; storage nearly full; production cuts underway.</div>
+        <div class="source">CNBC / Reuters · Mar 6</div>
+      </div>
+      <div class="news-item">
+        <div class="headline">Houthis restarted Red Sea attacks</div>
+        <div class="detail">Dual chokepoint crisis now active: Hormuz AND Red Sea both disrupted simultaneously. Cape of Good Hope rerouting adds ~$1M/voyage and 10–15 days.</div>
+        <div class="source">Maritime Executive · Mar 7</div>
+      </div>
+      <div class="news-item">
+        <div class="headline">P&amp;I insurance withdrawn from all major clubs</div>
+        <div class="detail">All major P&I insurance clubs withdrew coverage for Gulf transits effective March 5. Without insurance, virtually no commercial vessel can legally operate in the region.</div>
+        <div class="source">Insurance Journal · Mar 5</div>
+      </div>
+    </div>
+    <div class="news-col">
+      <h4>🌍 Diplomacy &amp; Economy</h4>
+      <div class="news-item">
+        <div class="headline"><span class="badge badge-red">KEY</span>Trump: "Unconditional surrender only" — war "a little while" longer</div>
+        <div class="detail">Trump said the war is going "unbelievably good" and will continue "a little while." Reiterated unconditional surrender demand. US approved new $151M arms sale to Israel.</div>
+        <div class="source">CNN / Al Jazeera · Mar 8–9</div>
+      </div>
+      <div class="news-item">
+        <div class="headline">Iran FM rejects ceasefire on NBC Meet the Press</div>
+        <div class="detail">FM Araghchi: Iran needs "to continue fighting for the sake of our people." Declined to confirm or deny Russian intelligence support to Iran.</div>
+        <div class="source">NBC News · Mar 9</div>
+      </div>
+      <div class="news-item">
+        <div class="headline"><span class="badge badge-blue">SIGNAL</span>Iran president apologizes to Gulf states</div>
+        <div class="detail">President Pezeshkian apologized to Gulf Arab states for strikes and said Iran would limit attacks on them. Analysts see this as Iran's first genuine diplomatic signal under pressure.</div>
+        <div class="source">Al Jazeera · Mar 8</div>
+      </div>
+      <div class="news-item">
+        <div class="headline">Russia sharing real-time US military intel with Iran</div>
+        <div class="detail">Russia providing Iran satellite intelligence on US troop, ship, and aircraft positions in real time — a direct escalation that brings Russia into the conflict orbit. (WaPo/CNN/NBC)</div>
+        <div class="source">Washington Post · Mar 6</div>
+      </div>
+      <div class="news-item">
+        <div class="headline">US jobs Feb: −92,000 (expected +56K)</div>
+        <div class="detail">Shocking miss: 148,000-job swing from expectations. War uncertainty freezing hiring decisions. Asian markets nosedived; oil passed $100/barrel briefly.</div>
+        <div class="source">BLS / CNBC · Mar 7</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MAP -->
+<div class="section">
+  <div class="section-title">🗺️ Crisis Map — Strikes, Shipping Disruptions &amp; Impact Zones</div>
+  <div id="crisis-map"></div>
+</div>
+
+<!-- COUNTRY CARDS -->
+<div class="section">
+  <div class="section-title">🌐 Country Impact Scores (hover for detail)</div>
+  <div class="country-grid" id="country-grid"></div>
+</div>
+
+<!-- STORAGE + FUTURES -->
+<div class="section">
+  <div class="charts-row">
+    <div class="chart-box">
+      <h4>⏱️ JPMorgan Gulf Storage Clock (Days Until Wall)</h4>
+      <div id="storage-clock"></div>
+      <div style="margin-top:10px;font-size:11px;color:#6b7280">Storage "wall" = point where tanks are full, forced production cuts. Production loss trajectory: Day 8: −3.3M bpd · Day 15: −3.8M bpd · Day 18: −4.7M bpd</div>
+    </div>
+    <div class="chart-box">
+      <h4>📊 Brent Crude Futures Curve (Market vs Reality)</h4>
+      <div id="futures-chart"></div>
+      <div style="margin-top:10px;font-size:11px;color:#6b7280">Futures backwardation suggests market prices recovery. Analysts argue this is wrong — Kuwait wall (~Mar 17) + EU gas ban (Mar 18) will push prices higher than market expects.</div>
+    </div>
+  </div>
+</div>
+
+<!-- INDUSTRY CARDS -->
+<div class="section">
+  <div class="section-title">🏭 Industry Impact Scores (click to expand)</div>
+  <div class="industry-grid" id="industry-grid"></div>
+</div>
+
+<!-- AI PROJECTIONS -->
+<div class="proj-section">
+  <div class="proj-header">
+    <div>
+      <div class="proj-title">🤖 AI-Generated Industry Projections</div>
+      <div class="proj-subtitle">Select a time horizon to see projected impact scores and key risk factors for each sector</div>
+    </div>
+    <div class="proj-buttons">
+      <button class="proj-btn active" onclick="setProjection('current')">📍 Current (Day 9)</button>
+      <button class="proj-btn" onclick="setProjection('2w')">2 Weeks</button>
+      <button class="proj-btn" onclick="setProjection('4w')">4 Weeks</button>
+      <button class="proj-btn" onclick="setProjection('6w')">6 Weeks</button>
+    </div>
+  </div>
+  <div class="proj-grid" id="proj-grid"></div>
+  <div style="font-size:10px;color:#374151;margin-top:12px;text-align:right">AI projections based on conflict trajectory, analyst forecasts (Goldman Sachs, JPMorgan, Deutsche Bank), and historical conflict precedents. Not financial advice.</div>
+</div>
+
+<!-- SCENARIOS -->
+<div class="section">
+  <div class="section-title">🎯 Scenario Analysis</div>
+  <div class="scenario-grid">
+    <div class="sccard" style="border-color:#22c55e33">
+      <div class="sccard-header">
+        <div class="sccard-label">SCENARIO A</div>
+        <div class="sccard-prob" style="color:#22c55e">25%</div>
+      </div>
+      <div class="sccard-title">Deal in 4 Weeks</div>
+      <div class="sccard-text">Iran accepts face-saving diplomatic off-ramp. New Supreme Leader (Mojtaba) uses legitimacy to negotiate. Gulf states broker deal via Oman channel.</div>
+      <div class="sccard-oil" style="color:#22c55e">Brent: $85–92 → $70 by mid-year</div>
+    </div>
+    <div class="sccard" style="border-color:#f59e0b55;background:#141200">
+      <div class="sccard-header">
+        <div class="sccard-label" style="color:#f59e0b">SCENARIO B — BASE CASE</div>
+        <div class="sccard-prob" style="color:#f59e0b">45%</div>
+      </div>
+      <div class="sccard-title">5+ Week Prolonged Conflict</div>
+      <div class="sccard-text">War drags past Kuwait storage wall (~Mar 17). Iraq cuts 1.5M+ bpd. EU gas ban hits Mar 18 simultaneously. Fertilizer shock hits spring planting. Inflation rises sharply.</div>
+      <div class="sccard-oil" style="color:#f59e0b">Brent: $100–120 · TTF: €60–74/MWh</div>
+    </div>
+    <div class="sccard" style="border-color:#ef444433">
+      <div class="sccard-header">
+        <div class="sccard-label" style="color:#ef4444">SCENARIO C</div>
+        <div class="sccard-prob" style="color:#ef4444">20%</div>
+      </div>
+      <div class="sccard-title">Mines + Naval Blockade</div>
+      <div class="sccard-text">Iran deploys limpet/moored mines in Hormuz. US mine-clearing ops begin. Russia/China supply Iran. Deutsche Bank's $200 tail risk becomes plausible. Global recession.</div>
+      <div class="sccard-oil" style="color:#ef4444">Brent: $150–200 · TTF: €100+/MWh</div>
+    </div>
+    <div class="sccard" style="border-color:#60a5fa33">
+      <div class="sccard-header">
+        <div class="sccard-label" style="color:#60a5fa">SCENARIO D</div>
+        <div class="sccard-prob" style="color:#60a5fa">10%</div>
+      </div>
+      <div class="sccard-title">Rapid De-escalation</div>
+      <div class="sccard-text">US intelligence achieves decisive objective. Iran's military capacity collapses faster than expected. Trump claims victory and de-escalates within 2 weeks.</div>
+      <div class="sccard-oil" style="color:#60a5fa">Brent: Retreats to $70–75 · Markets recover</div>
+    </div>
+  </div>
+</div>
+
+<!-- ASSESSMENT -->
+<div class="assessment">
+  <h3>🧠 AI Strategic Assessment — Day 9 Synthesis</h3>
+  <div class="assessment-grid">
+    <div>
+      <div class="assess-block">
+        <h4>🔑 Key Strategic Signals</h4>
+        <div class="signal"><div class="signal-dot sig-green"></div><p><strong>Pezeshkian's apology to Gulf states</strong> is Iran's clearest diplomatic signal yet — a tacit acknowledgment that attacking Gulf neighbors is counterproductive and risking broader isolation.</p></div>
+        <div class="signal"><div class="signal-dot sig-red"></div><p><strong>Russia's real-time satellite intelligence</strong> to Iran is an escalatory act that functionally makes Russia a co-belligerent. This raises Scenario C probability.</p></div>
+        <div class="signal"><div class="signal-dot sig-red"></div><p><strong>Iran's oil infrastructure now targeted</strong> — Shahran, Aghdasieh, and Tehran refinery strikes mark a strategic escalation aimed at fuel starvation of Iranian forces.</p></div>
+        <div class="signal"><div class="signal-dot sig-yellow"></div><p><strong>Mojtaba Khamenei as new Supreme Leader</strong> creates an unknown variable. He has IRGC ties but no formal governance experience — regime cohesion is the key question.</p></div>
+        <div class="signal"><div class="signal-dot sig-blue"></div><p><strong>China-Iran Hormuz corridor negotiations</strong> remain the most important wildcard. A China-brokered passage deal could partially reopen shipping and cap oil prices.</p></div>
+      </div>
+    </div>
+    <div>
+      <div class="assess-block">
+        <h4>⚠️ Critical Near-Term Triggers to Watch</h4>
+        <ul>
+          <li><strong>Kuwait storage wall ~March 17:</strong> Forced production cuts will create a second oil price shock. Markets are not fully pricing this.</li>
+          <li><strong>EU Russian gas ban March 18:</strong> Simultaneous with Kuwait wall — TTF could spike toward €70–100/MWh, compounding European energy crisis.</li>
+          <li><strong>Brent $100 test within 7–10 days:</strong> Base case; if Kuwait wall hits, $120 is plausible by end of March.</li>
+          <li><strong>Fertilizer shock is the most under-reported risk:</strong> QatarEnergy halt + Hormuz closure disrupts 33% of global fertilizer transit during peak planting season. Food inflation surge 3–6 months out.</li>
+          <li><strong>Futures backwardation is wrong:</strong> Market prices (May $92 → Sep $78) assume early resolution. The Kuwait/EU twin shocks in week 2–3 are likely to break this narrative.</li>
+          <li><strong>Scenario C (mines, 20%) is under-priced</strong> given Russia's deepening involvement and Iran's stated willingness to escalate if cornered.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- FOOTER -->
+<div class="footer">
+  <strong style="color:#6b7280">Sources:</strong> Reuters · Bloomberg · CNN · Al Jazeera · BBC · AP · NPR · NBC News · Washington Post · Axios · CNBC · Times of Israel · Iran International · ACLED · Foreign Policy · Goldman Sachs Research · JPMorgan Markets · Deutsche Bank · CSIS · IMF · QatarEnergy · CENTCOM · Wikipedia (2026 Iran war) · Maritime Executive · Insurance Journal · Flightradar24 · AAA · Farm Progress · AgWeb · FDD Long War Journal · Windward · Engineering News-Record · Food Ingredients First · Gulf News · Chatham House · World Bank
+  <br><br>⚠️ This dashboard is for informational and analytical purposes only. Data reflects reporting as of Day 9 (March 9, 2026). Not financial advice. Projection scores are AI-generated estimates, not forecasts from financial institutions.
+</div>
+
+<script>
+// ===================== CLOCK =====================
+function updateClock(){
+  const now=new Date();
+  document.getElementById('live-clock').textContent=now.toUTCString().replace(' GMT','');
+}
+updateClock();setInterval(updateClock,1000);
+
+// ===================== TICKER =====================
+const tickerItems=[
+  {t:'WTI CRUDE',v:'$90.90/bbl',c:'▲ +35% this week — largest weekly gain since 1983'},
+  {t:'HORMUZ',v:'ZERO TRANSITS',c:'0 tankers March 6 vs avg 24/day — shipping paralyzed'},
+  {t:'GOLD',v:'$5,158/oz',c:'▲ Safe-haven surge · ATH $5,595 hit'},
+  {t:'NEW SUPREME LEADER',v:'MOJTABA KHAMENEI',c:'Selected by Assembly of Experts March 9 — IDF warns he is a target'},
+  {t:'US CASUALTIES',v:'7 KIA',c:'7th service member died from injuries · CENTCOM March 9'},
+  {t:'IRAN OIL HIT',v:'FIRST TIME',c:'4 Tehran storage depots struck March 7–8 · Shahran oil in streets'},
+  {t:'UREA FERTILIZER',v:'$545/ton',c:'▲ +$80 in days · QatarEnergy halted world\'s largest urea plant'},
+  {t:'VLCC TANKERS',v:'$423K/day',c:'▲ All-time record · 3,200 ships trapped in Gulf'},
+  {t:'RUSSIA INTEL',v:'ESCALATION',c:'Moscow sharing real-time satellite data on US forces with Tehran'},
+  {t:'UK B-1 LANCER',v:'RAF FAIRFORD',c:'Britain joins coalition · Starmer grants permission for defensive strikes'},
+  {t:'US JOBS FEB',v:'−92,000',c:'Expected +56K — 148,000 miss · War-driven hiring freeze'},
+  {t:'VIX FEAR',v:'29.26',c:'▲ +23.2% · Elevated market stress · KOSPI worst day in 19 months'},
+  {t:'SCENARIO B (BASE)',v:'45% PROBABILITY',c:'5+ weeks · Brent $100–120 · EU gas ban Mar 18 coincides with Kuwait storage wall'},
+  {t:'TRUMP DEMAND',v:'UNCONDITIONAL SURRENDER',c:'No negotiation · War continuing "a little while" longer · $151M Israel arms sale approved'},
+  {t:'FERTILIZER SHOCK',v:'MOST UNDER-REPORTED RISK',c:'33% of global fertilizer transits Hormuz · Spring planting at risk'},
+];
+const track=document.getElementById('ticker');
+const doubled=[...tickerItems,...tickerItems];
+track.innerHTML=doubled.map(i=>`<span class="ticker-item"><strong style="color:#f97316">${i.t}:</strong> ${i.v} — ${i.c}</span>`).join('');
+
+// ===================== COUNTRY DATA =====================
+const countries=[
+  {name:'Pakistan',flag:'🇵🇰',score:93,color:'#dc2626',status:'CRITICAL',detail:'Imports 85% of oil via Hormuz. Forex reserves cover <2 months of imports. IMF program at risk. Fuel price riots breaking out in Karachi and Lahore. Power cuts extended to 18+ hours/day. Remittances from Gulf workers collapsing.'},
+  {name:'Bangladesh',flag:'🇧🇩',score:89,color:'#ef4444',status:'SEVERE',detail:'100% oil import dependent. LNG spot prices unaffordable — power plants shutting down. Garment factories facing 12-hour daily outages. RMG export capacity at risk. Bangladeshi workers fleeing Gulf conflict zones; remittances collapsing.'},
+  {name:'Jordan',flag:'🇯🇴',score:88,color:'#ef4444',status:'SEVERE',detail:'Shares border with conflict zones. 97% energy imported. Airspace closed. Tourism collapsed. Iraqi oil pipeline disrupted. Palestinian refugee crisis worsening. Jordan is host to US military bases — direct target risk.'},
+  {name:'India',flag:'🇮🇳',score:77,color:'#f59e0b',status:'HIGH',detail:'85%+ crude via Hormuz. Refiners scrambling for alternative suppliers. Rupee under pressure. Gulf expat remittances at risk (~$40B/yr). Indian Rumaila workers evacuated from Iraq. Kerosene and LPG subsidy costs spiking.'},
+  {name:'Taiwan',flag:'🇹🇼',score:73,color:'#f59e0b',status:'HIGH',detail:'98% oil imported, majority from Gulf. TSMC and chip fabs face energy cost spikes. Strategic petroleum reserve being tapped. China watching for US military distraction window to exploit.'},
+  {name:'Egypt',flag:'🇪🇬',score:72,color:'#f59e0b',status:'HIGH',detail:'Suez Canal traffic collapsing — major FX revenue source. Wheat import costs surging (Egypt = world\'s largest wheat importer). IMF package straining. Tourist industry devastated. Gulf financial support uncertain.'},
+  {name:'Europe',flag:'🇪🇺',score:68,color:'#f59e0b',status:'ELEVATED',detail:'EU gas ban on Russia takes effect March 18 — simultaneous with Hormuz crisis. TTF spiking toward €60–74. Germany industrial output at risk. Southern European power prices surging. LNG diversion to Asia outcompeting Europe.'},
+  {name:'S. Korea',flag:'🇰🇷',score:65,color:'#eab308',status:'ELEVATED',detail:'KOSPI worst single day in 19 months. 70%+ oil from Gulf. Samsung, Hynix chip plants exposed to energy cost spikes. Automotive and shipbuilding sectors impacted. Won under pressure.'},
+  {name:'Japan',flag:'🇯🇵',score:61,color:'#eab308',status:'MODERATE+',detail:'Almost entirely Gulf-dependent for oil. LNG contracts being rerouted. Yen strengthening as safe haven. Nikkei resilient so far but energy import bill surging. Manufacturers hedging aggressively.'},
+  {name:'China',flag:'🇨🇳',score:50,color:'#84cc16',status:'MANAGED',detail:'Negotiating Hormuz corridor with Iran for Chinese vessels. Strategic reserves being drawn down. Yuan relatively stable. Russia pipeline offsetting some Gulf shortfall. Geopolitically advantaged — watching US resources drain.'},
+  {name:'Singapore',flag:'🇸🇬',score:47,color:'#22d3ee',status:'WATCHFUL',detail:'Major oil trading and refining hub. Tanker congestion creating short-term revenue boost. Port throughput up from Gulf rerouting. Some exposure to regional shipping disruption. MAS closely monitoring liquidity.'},
+  {name:'USA',flag:'🇺🇸',score:38,color:'#22c55e',status:'INSULATED',detail:'Strategic Petroleum Reserve buffer. Shale producers ramping up — Permian at record output. Still, gasoline up 27¢/gal in a week. Feb jobs: −92,000. CPI heading from 2.4% toward 3%+ (Goldman). Defense spending surge benefiting industrial sector.'},
+];
+
+const cGrid=document.getElementById('country-grid');
+countries.forEach(c=>{
+  const d=document.createElement('div');
+  d.className='ccard';
+  d.innerHTML=`<div class="ccard-name">${c.flag} ${c.name}</div>
+    <div class="ccard-score" style="color:${c.color}">${c.score}</div>
+    <div class="ccard-status" style="color:${c.color}">${c.status}</div>
+    <div class="ccard-tooltip">${c.detail}</div>`;
+  cGrid.appendChild(d);
+});
+
+// ===================== INDUSTRIES =====================
+const industries=[
+  {name:'⚡ Energy',score:95,color:'#dc2626',detail:'Hormuz closure stranding 20% of global traded oil. 4 Tehran oil depots struck March 7–8 (first time). Kuwait, Qatar, Iraq, Saudi, Bahrain all hit. Storage walls approaching. Goldman: $100+ within 10 days.'},
+  {name:'🚢 Shipping',score:92,color:'#ef4444',detail:'Zero commercial transits. 3,200 ships trapped in Gulf. VLCC rates at $423K/day all-time record. P&I insurance withdrawn. All major carriers suspended. Jebel Ali zero for 7 days.'},
+  {name:'✈️ Aviation',score:88,color:'#ef4444',detail:'21,300+ flights cancelled. 8+ airspaces closed. Emirates, Qatar Airways suspended. Air freight up 400% in 48hrs. Seat capacity down 18%. Fuel cost surging for all carriers.'},
+  {name:'🔌 Power & Utilities',score:85,color:'#f97316',detail:'Pakistan/Bangladesh: 12–18hr blackouts. Qatar LNG halt rippling into European power. TTF €53/MWh spiking. EU gas ban March 18 compounds crisis. South Asian grid stress at extreme.'},
+  {name:'🌾 Agriculture',score:82,color:'#f97316',detail:'Urea at $545/ton (+$80). QatarEnergy halted world\'s largest urea plant. 33% of global fertilizer transits Hormuz. Spring planting risk. Corn→soybean switch underway. Soybean oil at 2.5yr high.'},
+  {name:'📉 Emerging Markets',score:80,color:'#f59e0b',detail:'Pakistan, Bangladesh, Jordan in acute stress. EM currencies under pressure. Capital flight to US dollar. IMF programs straining. Gulf remittance collapse hitting South Asia. Contagion risk elevated.'},
+  {name:'🏨 Tourism & Hospitality',score:78,color:'#f59e0b',detail:'8+ airspaces closed. 4.4M seats removed. Middle East tourism collapsed. Cairo, Amman, Beirut devastated. Cruise ships rerouting from Red Sea. Hotels in conflict zone cities emptying.'},
+  {name:'💻 Tech & Chips',score:72,color:'#eab308',detail:'Taiwan exposed (98% Gulf oil). TSMC energy costs rising. KOSPI chip stocks hit hard. Air freight for semiconductor components up 400%. Supply chain delays emerging for Q2.'},
+  {name:'💊 Pharmaceuticals',score:70,color:'#eab308',detail:'Active pharmaceutical ingredient supply chains through Gulf disrupted. Air freight costs spiking for time-sensitive cold-chain medications. Indian pharma exporters facing logistics crisis.'},
+  {name:'🚗 Auto & EVs',score:68,color:'#eab308',detail:'Korean auto stocks hit hard (KOSPI). Fuel prices boosting EV demand long-term but short-term parts logistics disrupted. Aluminum, lithium shipping routes affected. German OEMs exposed via energy costs.'},
+  {name:'🏦 Finance & Markets',score:65,color:'#84cc16',detail:'$3.2T global equity loss in 96 hours. S&P −2% week. VIX 29. War-risk insurance costs spiking. JPMorgan: $1–1.5% US inflation shock. Goldman: CPI 2.4%→3%. Feb jobs −92K shocking.'},
+  {name:'🏗️ Construction',score:60,color:'#84cc16',detail:'Gulf construction projects frozen. Expat worker exodus. Material logistics disrupted. LNG project expansions halted. Iraq construction in war zone. UAE construction delays from attack damage.'},
+];
+
+const iGrid=document.getElementById('industry-grid');
+industries.forEach((ind,i)=>{
+  const d=document.createElement('div');
+  d.className='icard';
+  d.id=`icard-${i}`;
+  const pct=ind.score;
+  const barColor=ind.score>=85?'#dc2626':ind.score>=70?'#f97316':'#eab308';
+  d.innerHTML=`
+    <div class="icard-top">
+      <div class="icard-name">${ind.name}</div>
+      <div class="icard-score" style="color:${ind.color}">${ind.score}</div>
+    </div>
+    <div class="icard-bar-wrap"><div class="icard-bar" style="width:${pct}%;background:${barColor}"></div></div>
+    <div class="icard-status">Impact Score / 100 · Click to expand</div>
+    <div class="icard-detail">${ind.detail}</div>`;
+  d.onclick=()=>{d.classList.toggle('expanded')};
+  iGrid.appendChild(d);
+});
+
+// ===================== PROJECTIONS =====================
+const projData={
+  current:[
+    {sector:'Energy',score:95,trend:'▲',trendClass:'trend-up',text:'Hormuz at zero transit. Tehran oil depots struck. $90/bbl. Goldman: $100+ within days.'},
+    {sector:'Shipping',score:92,trend:'▲',trendClass:'trend-up',text:'3,200 ships trapped. VLCC at $423K/day ATH. All majors suspended. P&I withdrawn.'},
+    {sector:'Aviation',score:88,trend:'▲',trendClass:'trend-up',text:'21,300 flights cancelled. 8 airspaces closed. Freight up 400%. Emirates/QR suspended.'},
+    {sector:'Power & Utilities',score:85,trend:'▲',trendClass:'trend-up',text:'Pakistan/Bangladesh blackouts. TTF €53. QatarEnergy halt rippling into EU power.'},
+    {sector:'Agriculture',score:82,trend:'▲',trendClass:'trend-up',text:'Urea $545/ton. Qatar urea plant halted. Spring planting at risk. Corn→soy switch.'},
+    {sector:'Emerging Markets',score:80,trend:'▲',trendClass:'trend-up',text:'Pakistan, Bangladesh in acute crisis. EM currencies under pressure. Capital flight.'},
+    {sector:'Tourism',score:78,trend:'▲',trendClass:'trend-up',text:'4.4M seats removed. Middle East tourism collapsed. Cairo, Amman devastated.'},
+    {sector:'Tech & Chips',score:72,trend:'▲',trendClass:'trend-up',text:'Taiwan TSMC energy costs rising. Air freight +400%. KOSPI chip stocks hit hard.'},
+    {sector:'Pharma',score:70,trend:'—',trendClass:'trend-neutral',text:'Cold-chain logistics disrupted. Indian pharma exports facing delays. Costs rising.'},
+    {sector:'Auto & EVs',score:68,trend:'—',trendClass:'trend-neutral',text:'Korean OEMs hit. Fuel crisis may boost EV demand long-term. Parts logistics strained.'},
+    {sector:'Finance',score:65,trend:'▲',trendClass:'trend-up',text:'$3.2T equity loss. VIX 29. Feb jobs −92K. Goldman: CPI rising to 3%.'},
+    {sector:'Construction',score:60,trend:'▲',trendClass:'trend-up',text:'Gulf projects frozen. Worker exodus. Iraq sites in war zone. UAE damage delays.'},
+  ],
+  '2w':[
+    {sector:'Energy',score:97,trend:'▲▲',trendClass:'trend-up',text:'Kuwait storage wall hits ~Mar 17. Forced production cuts add 1–2M bpd loss. Brent tests $100. Iraq cuts worsen.'},
+    {sector:'Shipping',score:95,trend:'▲',trendClass:'trend-up',text:'Rerouting costs fully embedded. Cape of Good Hope congestion. VLCC rates hold record highs. No return timeline.'},
+    {sector:'Aviation',score:89,trend:'—',trendClass:'trend-neutral',text:'Airspace closures persist. Carriers burning hedged fuel. Growing pressure on unhedged airlines. Cargo rates sustain.'},
+    {sector:'Power & Utilities',score:90,trend:'▲▲',trendClass:'trend-up',text:'EU gas ban takes effect March 18. TTF spikes toward €60–70. EU emergency storage draw begins. Pakistan grid failing.'},
+    {sector:'Agriculture',score:87,trend:'▲',trendClass:'trend-up',text:'Planting decisions locked in with high urea prices. Corn acreage drop confirmed. Food inflation baked in for Q3.'},
+    {sector:'Emerging Markets',score:86,trend:'▲',trendClass:'trend-up',text:'IMF emergency interventions likely. Pakistan FX reserves critically low. Bangladesh garment sector stalled.'},
+    {sector:'Tourism',score:80,trend:'—',trendClass:'trend-neutral',text:'Structural collapse in region. Recovery not possible while airspace closed. Global tourism reallocation to non-conflict zones.'},
+    {sector:'Tech & Chips',score:76,trend:'▲',trendClass:'trend-up',text:'Q2 chip supply chain disruptions confirmed. Taiwan energy rationing risk if prolonged. Semiconductor spot prices rising.'},
+    {sector:'Pharma',score:73,trend:'▲',trendClass:'trend-up',text:'API supply chain gaps widening. Cold-chain costs spike. Some generic drug shortages emerging in affected markets.'},
+    {sector:'Auto & EVs',score:72,trend:'▲',trendClass:'trend-up',text:'Fuel costs accelerate EV conversion trend. But parts logistics still disrupted. German OEMs energy bill surging.'},
+    {sector:'Finance',score:72,trend:'▲',trendClass:'trend-up',text:'CPI rising toward 3%. Fed rate cut expectations pushed back. Credit spreads widening on EM sovereign debt.'},
+    {sector:'Construction',score:67,trend:'▲',trendClass:'trend-up',text:'Gulf megaprojects formally suspended. Labour repatriation underway. Steel/cement logistics disrupted globally.'},
+  ],
+  '4w':[
+    {sector:'Energy',score:99,trend:'▲▲',trendClass:'trend-up',text:'Brent $100–120 (JPMorgan base at 4wk). Kuwait/Iraq forced cuts: −3.8M bpd. Alternative supply insufficient. Recession risk rising.'},
+    {sector:'Shipping',score:97,trend:'▲',trendClass:'trend-up',text:'Global fleet fully reallocated to Cape route. Transit times +15 days globally. Container shortage crisis. Freight rates embed new normal.'},
+    {sector:'Aviation',score:90,trend:'—',trendClass:'trend-neutral',text:'Airlines entering financial stress. Some LCC failures likely. Fuel hedges expiring. Gulf airline revenue zero. IATA crisis talks.'},
+    {sector:'Power & Utilities',score:95,trend:'▲▲',trendClass:'trend-up',text:'European energy emergency declared. TTF €70–100/MWh. Industrial curtailments mandated in Germany, Italy. South Asian grid catastrophe.'},
+    {sector:'Agriculture',score:92,trend:'▲▲',trendClass:'trend-up',text:'Corn planting reduced 8–12% globally. Wheat futures surging. Food price index heading for 2022 record levels. Famine risk in import-dependent nations.'},
+    {sector:'Emerging Markets',score:91,trend:'▲▲',trendClass:'trend-up',text:'Multiple EM sovereign defaults risk. Pakistan emergency IMF tranche. Bangladesh political instability. Egypt pound crisis. Currency crises cascading.'},
+    {sector:'Tourism',score:83,trend:'—',trendClass:'trend-neutral',text:'Middle East effectively offline for tourism for remainder of 2026. Mediterranean tourism benefits as diversion. Losses in region: $40B+.'},
+    {sector:'Tech & Chips',score:82,trend:'▲',trendClass:'trend-up',text:'Confirmed supply chain disruption biting into Q2-Q3 production. TSMC emergency rationing. AI data center builds delayed on chip shortages.'},
+    {sector:'Pharma',score:79,trend:'▲',trendClass:'trend-up',text:'Generic drug shortages spreading. India API exports heavily disrupted. Healthcare systems in conflict-adjacent nations under stress.'},
+    {sector:'Auto & EVs',score:77,trend:'▲',trendClass:'trend-up',text:'EV sales surge as fuel hits record prices. ICE demand collapsing in high-fuel-price markets. Battery supply chain pressure from Hormuz minerals.'},
+    {sector:'Finance',score:81,trend:'▲▲',trendClass:'trend-up',text:'US CPI 3%+. Fed on hold. $5–7T equity market losses cumulatively. EM debt crisis emerging. War premium embedded in all asset prices.'},
+    {sector:'Construction',score:74,trend:'▲',trendClass:'trend-up',text:'Global cement/steel supply chains restructured. Gulf construction industry in effective shutdown. Western infrastructure projects delayed on cost spikes.'},
+  ],
+  '6w':[
+    {sector:'Energy',score:100,trend:'▲▲▲',trendClass:'trend-up',text:'Brent $120–150+ if mines deployed (Deutsche Bank $200 tail). Total Gulf output loss: 4–5M bpd. SPRs draining. Alternative supply years away. Global recession confirmed.'},
+    {sector:'Shipping',score:99,trend:'▲▲',trendClass:'trend-up',text:'Cape of Good Hope at capacity — backlogs form there too. Global supply chain in structural crisis. Shipping costs +300% embedded. Reshoring accelerates.'},
+    {sector:'Aviation',score:91,trend:'—',trendClass:'trend-neutral',text:'Multiple airline failures globally. Industry seeking government bailouts. Gulf aviation industry in existential crisis. Global air cargo in permanent shortage.'},
+    {sector:'Power & Utilities',score:98,trend:'▲▲▲',trendClass:'trend-up',text:'European industrial recession. Rolling blackouts in Germany possible. South Asian grid collapses. Pakistan/Bangladesh humanitarian energy crisis. Coal rebound globally.'},
+    {sector:'Agriculture',score:96,trend:'▲▲▲',trendClass:'trend-up',text:'Global food crisis confirmed. Corn shortage Q4 2026. Wheat at 2022+ highs. UN WFP emergency declarations. Spring 2026 harvest impacted. Famine risk in Sahel/South Asia.'},
+    {sector:'Emerging Markets',score:97,trend:'▲▲▲',trendClass:'trend-up',text:'Systemic EM sovereign debt crisis. Multiple defaults. IMF resources strained. Social instability in Pakistan, Bangladesh, Egypt, Jordan. Capital flight to USD at pandemic scale.'},
+    {sector:'Tourism',score:86,trend:'—',trendClass:'trend-neutral',text:'Middle East/South Asia tourism offline for 2026 entirely. Global tourism GDP impact: ~$150B+. Industry restructuring around new conflict geography.'},
+    {sector:'Tech & Chips',score:88,trend:'▲▲',trendClass:'trend-up',text:'Severe AI and consumer electronics supply crunch. TSMC Taiwan emergency risk if China opportunistically moves. Chip prices at 2021-era scarcity levels.'},
+    {sector:'Pharma',score:84,trend:'▲',trendClass:'trend-up',text:'WHO declares pharmaceutical supply emergency. Generic drug shortfalls in 40+ countries. Insulin, antibiotics priority allocation. Supply chains permanently rerouted.'},
+    {sector:'Auto & EVs',score:82,trend:'▲',trendClass:'trend-up',text:'ICE vehicle demand collapse. Waiting lists for EVs. Battery mineral supply chains restructured. European auto industry in severe recession. Detroit restructuring begins.'},
+    {sector:'Finance',score:90,trend:'▲▲▲',trendClass:'trend-up',text:'Global recession declared by IMF. $10T+ equity losses. Fed emergency cuts. EM debt cascade. Dollar surges. Gold $6,000+ plausible. Crypto volatility extreme.'},
+    {sector:'Construction',score:80,trend:'▲',trendClass:'trend-up',text:'Global infrastructure investment freeze. Material costs up 40–60%. Labour shortages from Gulf expat repatriation. Defence construction surging as civilian stalls.'},
+  ],
+};
+
+let currentProj='current';
+function setProjection(key){
+  currentProj=key;
+  document.querySelectorAll('.proj-btn').forEach(b=>b.classList.remove('active'));
+  event.target.classList.add('active');
+  renderProjections();
+}
+
+function scoreColor(s){
+  if(s>=90)return'#dc2626';
+  if(s>=80)return'#f97316';
+  if(s>=70)return'#f59e0b';
+  if(s>=60)return'#eab308';
+  return'#22c55e';
+}
+
+function renderProjections(){
+  const data=projData[currentProj];
+  const grid=document.getElementById('proj-grid');
+  grid.innerHTML=data.map(p=>`
+    <div class="pcard">
+      <div class="pcard-sector">${p.sector}</div>
+      <div class="pcard-score" style="color:${scoreColor(p.score)}">${p.score}<span style="font-size:12px;color:#6b7280">/100</span></div>
+      <div class="pcard-trend ${p.trendClass}">${p.trend} ${p.score>=90?'CRITICAL':p.score>=80?'SEVERE':p.score>=70?'HIGH':'ELEVATED'}</div>
+      <div class="pcard-text">${p.text}</div>
+    </div>`).join('');
+}
+renderProjections();
+
+// ===================== STORAGE CLOCK =====================
+const storageData=[
+  {name:'Iraq',pct:95,label:'~3 days (Mar 6)',color:'#dc2626',note:'Already cutting 1.5M bpd'},
+  {name:'Kuwait',pct:80,label:'~8 days (Mar 17)',color:'#f97316',note:'Wall hit = major forced cuts'},
+  {name:'Bahrain',pct:75,label:'~10 days',color:'#f97316',note:'Bapco refinery hit Mar 5'},
+  {name:'Qatar',pct:60,label:'~14 days',color:'#f59e0b',note:'Force majeure already declared'},
+  {name:'Saudi Arabia',pct:35,label:'~20 days',color:'#eab308',note:'Ras Tanura hit; Shaybah at risk'},
+  {name:'UAE',pct:28,label:'~22 days',color:'#84cc16',note:'Fujairah hit; diversified reserves'},
+];
+const clockDiv=document.getElementById('storage-clock');
+clockDiv.innerHTML=storageData.map(s=>`
+  <div class="clock-item">
+    <div class="clock-label" style="color:#d1d5db;font-size:11px">${s.name}</div>
+    <div style="flex:1">
+      <div class="clock-bar-wrap"><div class="clock-bar" style="width:${s.pct}%;background:${s.color}"></div></div>
+      <div style="font-size:9px;color:#6b7280;margin-top:2px">${s.note}</div>
+    </div>
+    <div class="clock-pct" style="color:${s.color}">${s.label}</div>
+  </div>`).join('');
+
+// ===================== FUTURES =====================
+const futures=[
+  {month:'Mar',val:92,spot:true},{month:'Apr',val:91},{month:'May',val:92},{month:'Jun',val:89},
+  {month:'Jul',val:86},{month:'Aug',val:82},{month:'Sep',val:78},{month:'Oct',val:74},
+];
+const maxF=95;
+const fDiv=document.getElementById('futures-chart');
+fDiv.innerHTML=`<div style="display:flex;align-items:flex-end;gap:8px;height:150px;padding-bottom:20px;position:relative">
+${futures.map(f=>{
+  const h=Math.round((f.val/maxF)*130);
+  const col=f.spot?'#f97316':'#3b82f6';
+  return`<div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%">
+    <div style="font-size:10px;color:#e5e7eb;font-weight:700;margin-bottom:2px">$${f.val}</div>
+    <div style="width:100%;height:${h}px;background:${col};border-radius:4px 4px 0 0;opacity:0.85"></div>
+    <div style="font-size:9px;color:#9ca3af;margin-top:4px">${f.month}${f.spot?' (spot)':''}</div>
+  </div>`;
+}).join('')}
+</div>
+<div style="font-size:10px;color:#6b7280;margin-top:4px"><span style="color:#f97316">■</span> Spot/current &nbsp; <span style="color:#3b82f6">■</span> Futures (market implied) &nbsp; — Backwardation assumes early resolution; analysts say this is wrong</div>`;
+
+// ===================== MAP =====================
+const map=L.map('crisis-map',{center:[28,55],zoom:4,zoomControl:true});
+L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{attribution:'© CartoDB',maxZoom:18}).addTo(map);
+
+function circleM(latlng,color,radius,popup){
+  return L.circleMarker(latlng,{radius,color,fillColor:color,fillOpacity:0.6,weight:2}).addTo(map).bindPopup(popup);
+}
+
+// Strike sites
+circleM([35.7,51.4],'#dc2626',14,'<b>🔴 Tehran</b><br>Most heavily targeted city.<br>Mehrabad Airport hit · 4 oil depots struck Mar 7–8<br>IRIB broadcaster, parliament, IRGC HQ all targeted');
+circleM([32.66,51.67],'#dc2626',10,'<b>🔴 Isfahan</b><br>Nuclear-adjacent sites targeted<br>Military industrial complex struck');
+circleM([29.6,52.53],'#dc2626',9,'<b>🔴 Shiraz</b><br>Air defense sites destroyed<br>~80% Iranian air defenses now degraded');
+circleM([29.99,40.01],'#f97316',10,'<b>🟠 Ras Tanura (Saudi Arabia)</b><br>Drone strike forced temporary shutdown<br>4 more drones intercepted heading to Shaybah Mar 7');
+circleM([25.9,51.55],'#f97316',10,'<b>🟠 Ras Laffan (Qatar)</b><br>QatarEnergy struck · Force majeure declared Mar 4<br>World\'s largest urea plant halted · All LNG halted');
+circleM([24.46,54.36],'#f97316',9,'<b>🟠 Abu Dhabi / UAE</b><br>Dubai airport + Abu Dhabi damaged<br>Fujairah storage hit · 1,184 drones + 205 missiles total');
+circleM([26.07,50.55],'#f97316',8,'<b>🟠 Bapco (Bahrain)</b><br>Refinery hit March 5<br>US 5th Fleet HQ targeted');
+circleM([29.37,47.98],'#f97316',8,'<b>🟠 Kuwait</b><br>Ali Al Salem Air Base fire Mar 5<br>Mina Al-Ahmadi refinery hit · Storage ~80% full');
+circleM([30.51,47.79],'#f97316',9,'<b>🟠 Rumaila Oilfield (Iraq)</b><br>Struck March 6 · Baker Hughes Energy City hit<br>Iraq cutting ~1.5M bpd');
+circleM([31.77,35.21],'#3b82f6',8,'<b>🔵 Israel</b><br>Receiving Iranian missile & drone strikes<br>Launched 2,500+ strikes on Iran · 80% air defenses destroyed<br>11 killed in Israel');
+circleM([33.88,35.5],'#eab308',7,'<b>🟡 Beirut (Lebanon)</b><br>Israeli strikes on Hezbollah targets<br>Hotel in central Beirut hit · 217+ killed in Lebanon<br>Ground incursion underway');
+
+// Hormuz
+circleM([26.5,56.5],'#dc2626',18,'<b>🚫 Strait of Hormuz — CLOSED</b><br>IRGC declared closed March 2<br>ZERO tankers March 6 (avg 24/day)<br>~200–300 tankers stranded<br>~3,200 ships trapped in Gulf<br>P&I insurance fully withdrawn');
+
+// Safe haven
+circleM([22.3,114.17],'#22c55e',7,'<b>🟢 Hong Kong / China</b><br>Negotiating Hormuz corridor for Chinese vessels<br>Geopolitically advantaged from US distraction');
+
+// Affected shipping
+const routePoints=[[26,56],[1.35,103.8],[31.2,29.9],[12.56,43.65],[-34,18.4]];
+for(let i=0;i<routePoints.length-1;i++){
+  L.polyline([routePoints[i],routePoints[i+1]],{color:'#f97316',weight:2,dashArray:'6,6',opacity:0.5}).addTo(map);
+}
+L.polyline([[26,56],[1.35,103.8]],{color:'#dc2626',weight:3,dashArray:'4,4',opacity:0.7}).addTo(map).bindPopup('<b>🚫 Hormuz to Singapore: BLOCKED</b><br>Zero commercial traffic');
+
+// Legend
+const legend=L.control({position:'bottomright'});
+legend.onAdd=()=>{
+  const d=L.DomUtil.create('div');
+  d.style.cssText='background:#0f172a;padding:10px;border-radius:8px;color:#e5e7eb;font-size:11px;border:1px solid #1f2937;min-width:160px';
+  d.innerHTML='<b style="color:#f59e0b">Map Legend</b><br><br>🔴 Active strike zones<br>🟠 Energy infrastructure hit<br>🔵 Alliance / coalition<br>🟡 Proxy conflict zone<br>🚫 Shipping blocked<br>🟢 Strategic opportunist<br><hr style="border-color:#1f2937;margin:6px 0"><span style="color:#f97316">---</span> Cape of Good Hope reroute';
+  return d;
+};
+legend.addTo(map);
+</script>
+</body>
+</html>
